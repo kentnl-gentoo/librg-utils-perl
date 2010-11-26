@@ -1,0 +1,95 @@
+librg-utils-perl (1.0.17) stable; urgency=low
+
+  * RG/Utils/Copf.pm: FASTA sequences can now consist of [A-Z.~_!-]
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 20 Oct 2010 09:57:21 +0200
+
+librg-utils-perl (1.0.16) stable; urgency=low
+
+  * RG/Utils/Copf.pm reported success (0) even when failed - corrected
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 07 Oct 2010 10:14:24 +0200
+
+librg-utils-perl (1.0.15) stable; urgency=low
+
+  * copf now uses a temporary directory for work dir if none given
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 29 Sep 2010 16:41:39 +0200
+
+librg-utils-perl (1.0.14) stable; urgency=low
+
+  * copf.pl lower case FASTA format recognition bug fixed
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Mon, 20 Sep 2010 17:16:21 +0200
+
+librg-utils-perl (1.0.13) stable; urgency=low
+
+  * Default is now not to change the nice level
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Tue, 24 Aug 2010 10:44:39 +0200
+
+librg-utils-perl (1.0.12) stable; urgency=low
+
+  * Fixed blast2saf log file issue
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Tue, 10 Aug 2010 21:31:43 +0200
+
+librg-utils-perl (1.0.11) stable; urgency=low
+
+  * Now tools die of errors instead of reporting success
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 24 Jun 2010 18:27:56 +0200
+
+librg-utils-perl (1.0.10) stable; urgency=low
+
+  * Silenced regular operation of copf.pl and hssp_filter.pl
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 17 Jun 2010 11:41:22 +0200
+
+librg-utils-perl (1.0.9) stable; urgency=low
+
+  * fileOutErr is now optional: will use STDERR if not given
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 17 Jun 2010 10:44:54 +0200
+
+librg-utils-perl (1.0.8) stable; urgency=low
+
+  * Better command failure detection and error reporting
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Sun, 16 May 2010 00:29:42 +0200
+
+librg-utils-perl (1.0.7) stable; urgency=low
+
+  * Better command failure detection and error reporting
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Sat, 15 May 2010 00:00:44 +0200
+
+librg-utils-perl (1.0.6) stable; urgency=low
+
+  * Added Mat to: next if ($kwd =~ /^file(In|Out|Help|Def|Mat)/i); # lkajan: infernal. This should be a next UNLESS /something/ condition.
+  * added profphd-utils dependency
+  * sed --in-place -> -i because Mac sed does not understand --in-place
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 12 May 2010 22:08:00 +0200
+
+librg-utils-perl (1.0.5) stable; urgency=low
+
+  * Added safFilterRed.pl from profphd
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 14 Jan 2010 20:44:49 +0100
+
+librg-utils-perl (1.0.4) unstable; urgency=low
+
+  * Corrected dirSrcMat path
+  * Corrected package method calls by qualifying package properly
+  * Added missing mat/Blast_blosum62.metric; added conv_hssp2saf.pl from profphd; fixed syntax error in hssp_filter.pl;
+  * Fixed syntax error in hssp_filter.pl
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 14 Jan 2010 20:44:49 +0100
+
+librg-utils-perl (1.0.3) unstable; urgency=low
+
+  * Simpler repository organization
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 14 Jan 2010 11:50:24 +0100
+
