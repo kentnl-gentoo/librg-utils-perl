@@ -387,7 +387,8 @@ sub copf {
 		&convAliGen($fileIn,$fileOutDef,$formIn,$formOut,$extOut,
 			    $par{"exeConvertSeq"},$par{"fileMatGcg"},$par{"doCompress"},
 			    $par{"frag"},$par{"extr"},$par{"fileOutScreen"},$par{"dirWork"},$fhTrace);
-	    print $fh "*** ERROR $scrName after convAliGen\n","*** $msg\n" if (! $Lok || $Lok==2);}}
+	    print $fh "*** ERROR $scrName after convAliGen\n","*** $msg\n" if (! $Lok || $Lok==2);}
+    }
 
 # change br 99-03 : commented out, since included in previous!
 #				# ------------------------------
@@ -717,7 +718,6 @@ sub ini {
                                 # determine input format
     if( !$par{formatIn} )
     {
-        if( $par{debug} ){ cluck("guessing file format of '$fileIn[1]'"); }
 	($Lok,$msg) = &getFileFormatQuick($fileIn[1]);
 
 	if (! $Lok || $msg =~ /ERROR/ || length($msg)>10 || length($msg)<3)
@@ -725,6 +725,7 @@ sub ini {
 		return(0,"*** ERROR $sbrName: could not determine format for file list ($fileIn[1])\n");
 	}
 	$par{"formatIn"}=$msg;
+        if( $par{debug} ){ cluck("guessed file format of '$fileIn[1]': $par{formatIn}"); }
     }
     $par{"formatIn"}=~tr/[A-Z]/[a-z]/;
 
@@ -2486,7 +2487,7 @@ sub convFastamul2many {
 		$ct=0;while (defined $tmp2{$name}){
 		    ++$ct;$name=substr($name,1,12).$ct;}}$tmp2{$name}=1;
 	    $tmp{$it}=    $name;
-	    $tmp{$name}=  $fasta{"seq",$it}; }
+	    $tmp{SEQS}->{$name}=  $fasta{"seq",$it}; }
 	$tmp{"NROWS"}=$fasta{"NROWS"};
         $tmp{"FROM"}=$fileInLoc; 
         $tmp{"TO"}=  $fileOutLoc;
@@ -3604,7 +3605,7 @@ sub convSaf2many {
     ($Lok,$msg,%safIn)=
         &safRd($fileInLoc);
 
-    @nameLoc=split(/,/,$safIn{"names"});
+    @nameLoc=split(/,/o,$safIn{"names"});
 				# ------------------------------
     undef %tmp; $ctTake=0;	# store names for passing variables
     foreach $it (1..$#nameLoc){ 
@@ -3702,7 +3703,7 @@ sub convSaf2many {
 				# reconvert to what MSF wants...
 	foreach $it (1..$safIn{"NROWS"}){$name=$safIn{"id",$it};
 					 $tmp{$it}=$name;
-					 $tmp{$name}=$safIn{"seq",$it};}
+					 $tmp{SEQS}->{$name}=$safIn{"seq",$it};}
 	$tmp{"NROWS"}=$safIn{"NROWS"};
         $tmp{"FROM"}= $fileInLoc; 
         $tmp{"TO"}=   $fileOutLoc;
@@ -6089,8 +6090,8 @@ sub msfBlowUp {
     $namex.="x"                if ($name eq $namex);
     $tmp{"1"}=$name;
     $tmp{"2"}=$namex;
-    $tmp{$name}=    $msfIn{"seq","1"};
-    $tmp{$namex}=   $msfIn{"seq","1"};
+    $tmp{SEQS}->{$name}=    $msfIn{"seq","1"};
+    $tmp{SEQS}->{$namex}=   $msfIn{"seq","1"};
     $tmp{"NROWS"}=  2;
     $tmp{"FROM"}=   $fileInLoc;
     $tmp{"TO"}=     $fileOutLoc;
@@ -6562,6 +6563,7 @@ sub msfWrt {
     local($fhoutLoc,%input) = @_ ;
     local(@nameLoc,@stringLoc,$tmp,$sbrName,$Lok);
     $[ =1 ;
+    if( $par{debug} ){ cluck("msfWrt ".join(', ', map{"$_ => $input{$_}";}(keys(%input)))); }
 #--------------------------------------------------------------------------------
 #   msfWrt                      writing an MSF formatted file of aligned strings
 #         in:                   $fileMsf,$input{}
@@ -6569,15 +6571,16 @@ sub msfWrt {
 #                               $input{"FROM"}   name of input file
 #                               $input{"TO"}     name of output file
 #                               $input{$it}    sequence identifier ($name)
-#                               $input{$name}  sequence for $name
+#                               $input{SEQS}->{$name}  sequence for $name
 #--------------------------------------------------------------------------------
     $sbrName="msfWrt";
+    if( $input{"NROWS"} && !$input{SEQS} ){ confess("no SEQS in %input - update calling code"); }
 				# ------------------------------
     $#nameLoc=$#tmp=0;		# process input
     foreach $it (1..$input{"NROWS"}){
 	$name=$input{$it};
 	push(@nameLoc,$name);	# store the names
-	push(@stringLoc,$input{$name}); } # store sequences
+	push(@stringLoc,$input{SEQS}->{$name}); } # store sequences
 
     $FROM=$input{"FROM"}        if (defined $input{"FROM"});
     $TO=  $input{"TO"}          if (defined $input{"TO"});
@@ -7229,17 +7232,17 @@ sub safRd {
 				# read file
     while (<$fhinLoc>) {	# --------------------------------------------------
 	$_=~s/\n//g;
-	next if ($_=~/\#/);	# ignore comments
+	next if ($_=~/^#/o);	# ignore comments
 	last if ($_=~/^\s*[\-\_]+\s*$/); # stop when address
 	$line=$_;
 				# ignore lines with numbers, blanks, points only
-	$tmp=$_; $tmp=~s/[^A-Za-z]//g;
+	$tmp=$_; $tmp=~s/[^A-Z]//gi;
 	next if (length($tmp)<1);
 
 	$line=~s/^\s*|\s*$//g;	# purge leading blanks
 				# ------------------------------
 				# names
-	$nameRd=$line; $nameRd=~s/^([^\s\t]+)[\s\t]+.*$/$1/;
+	$nameRd=$line; $nameRd=~s/^(\S+)\s+.*$/$1/o;
 				# new name?
 	if (! defined $tmp2{"ptr",$nameRd}){
 				# maximal length: 14 characters (because of MSF2Hssp)
@@ -7247,23 +7250,22 @@ sub safRd {
 		$nameTake=$nameRd;}
 	    else {
 		$tmp=$nameRd;
-		$tmp=~s/^.*\|//; # purge database
-		$ct=0;		# make sure not too long
-		while ((length($tmp)-$ct)>14){
-		    ++$ct;
-		    $tmp=substr($tmp,1,(length($tmp)-$ct));
+		#$tmp=~s/^.*\|//; # purge database
+		$tmp=~s/^[^|]*\|//o; # purge database
+                # make sure not too long
+		if(length($tmp)>14){
+		    $tmp = substr($tmp,$[,14);
 		}
-		$ct=0;		# make sure not too short
-		while ((length($tmp)+$ct)<2){
+		# make sure not too short
+		while (length($tmp)<2){
 				# nonsense name
-		    $tmp.=substr($nameRd,$ct,1);
+		    $tmp .= substr( $nameRd, $[+length($tmp), 1 );
 		}
 				# security check
 		$Lok=0;
 		$Lok=1          if (length($tmp)>=2 && 
-				    length($tmp)<14);
-		return(0,"*** ERROR $sbrName: could NOT find name for name=$nameRd!\n")
-		    if (! $Lok);
+				    length($tmp)<=14);
+		if(! $Lok){ confess("could NOT find name '$tmp' for name=$nameRd"); }
 		$nameTake=$tmp;}
 				# make sure that it name unique
 	    if (! defined $tmp2{$nameTake}){
@@ -7461,7 +7463,7 @@ sub seqGenWrt {
     elsif ($formOutLoc =~ /^pir/)  { ($Lok,$msg)=&pirWrtMul($fileOutLoc,%tmp);}
     elsif ($formOutLoc eq "saf")   { ($Lok,$msg)=&safWrt($fileOutLoc,%tmp);}
     elsif ($formOutLoc eq "msf")   { $tmp{"FROM"}="unk";$tmp{"TO"}=$fileOutLoc;
-				     $tmp{"1"}=$idInLoc;$tmp{"$idInLoc"}=$seqInLoc;
+				     $tmp{"1"}=$idInLoc;$tmp{SEQS}->{$idInLoc}=$seqInLoc;
 				     open("$fhoutLoc",">$fileOutLoc") || Carp::confess( "failed to open $fileOutLoc: $!" ) ||
 					 return(&errSbr("failed creating $fileOutLoc"));
 				     $Lok=
@@ -7706,10 +7708,7 @@ sub convAliGen {
 
                                 # --------------------------------------------------
     if ($formOut eq "hssp"){    # HSSP output
-        if ($#beg>1){
-            print 
-		"-*- WARN $sbrName: for $formIn -> HSSP currently only one fragment at a time!!\n" 
-		    x 2;}
+        if ($#beg>1){ warn( "-*- WARN $sbrName: for $formIn -> HSSP currently only one fragment at a time!!" x 2 );}
 	$shortNames=1;		# for HSSP: names shorter than 15 characters!
 
                                 # ------------------------------
@@ -7732,6 +7731,8 @@ sub convAliGen {
 
                                 # ------------------------------
                                 # (2) convert all to MSF
+        if( $par{debug} ){ cluck("convert all to MSF"); }
+
         if ($formIn eq "saf" || $formIn =~/^fasta/){
             $kwd=$formIn."-".$formOut;push(@kwdRmTmp,$kwd);
             $fileOutMsfTmp=$file{$kwd}=$dirWork.$par{"titleTmp"}.".msf_tmp";
@@ -8101,6 +8102,8 @@ sub convDsspGen {
                 push(@fileOut,$fileOutTmp);} }
         else {
 				# (2b) no loop
+            if( $par{debug} ){ cluck("(2b) no loop"); }
+
 	    $id=$fileInLoc;$id=~s/^.*\/|\..*$//g; # purge dir
 	    $id.="_".$chainIn if (defined $chainIn && $chainIn && $chainIn ne "*" && length($chainIn)==1);
 				# (3a) convert to MSF
@@ -8224,6 +8227,7 @@ sub convHsspGen {
           $doExpand,$frag,$extrIn,$fileScreenLoc,$dirWork,$fhSbr,$doSplitChainLoc) = @_ ;
     local($sbrName,$fhinLoc,$tmp,$Lok);
     $[ =1 ;
+    if( $par{debug} ){ cluck(); }
 #-------------------------------------------------------------------------------
 #   convHsspGen                 general converter for all HSSP in -> x
 #       in:                     $fileInLoc,$chainIn,$fileOutLoc,$formOut,$extOutLoc,$exeConvSeq,

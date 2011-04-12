@@ -1,4 +1,6 @@
 #!/usr/bin/perl -w
+use Carp qw| cluck :DEFAULT |;
+use File::Basename qw||;
 #
 $scrName=__FILE__;$scrName=~s/^.*\/|\.pl//g;
 $scrGoal="converts blastpgp output file into saf (optional Rdb)".
@@ -39,10 +41,12 @@ foreach $arg (@ARGV){
 	elsif ($arg=~/^red=(.*)$/)               { $filterThre  =        $1;}
 	elsif ($arg=~/^maxAli=(.*)$/)            { $maxAli      =        $1;}
         elsif ($arg=~/^tile=(.*)$/)              { $alignTiling =        $1;}
-	elsif ($arg=~/eSaf=(.*)$/)               { $eThresh      =       $1;}
-	elsif ($arg=~/extSaf=(.*)$/)             { $par{"extSaf"}  =     $1;}
-	elsif ($arg=~/extFasta=(.*)$/)           { $par{"extFasta"}=     $1;}
-	elsif ($arg=~/extRdb=(.*)$/)             { $par{"extRdb"}  =     $1;}
+	elsif ($arg=~/^eSaf=(.*)$/)               { $eThresh      =       $1;}
+	elsif ($arg=~/^extSaf=(.*)$/)             { $par{"extSaf"}  =     $1;}
+	elsif ($arg=~/^extFasta=(.*)$/)           { $par{"extFasta"}=     $1;}
+	elsif ($arg=~/^extRdb=(.*)$/)             { $par{"extRdb"}  =     $1;}
+	elsif ($arg=~/^debug=(.*)$/)              { $par{"debug"}  =      $1;}
+	elsif ($arg=~/^filterOutQueryNameHits=(.*)$/){ $par{filterOutQueryNameHits} = $1;}
 	elsif (-e $arg)                          { push(@fileIn,$arg);      }
 	else {
 	    die( "*** wrong command line arg '$arg'" );
@@ -111,6 +115,7 @@ foreach $fileIn (@fileIn){
 }
 #close FHERROR;
 #unlink($fileErr) if (-z $fileErr);
+exit(0);
 
 
 #=============================================================================================
@@ -126,18 +131,20 @@ sub blastp_to_saf {
     $fhin= "FHIN"; 
                                       #------------------- gets the query sequence and its length
     undef @query; $fastaFlag='0';
-    $queryName=$blastfile; $queryName=~s/^.+\/|\..+$//g; #$queryName.="_query";
+    # lkajan: this seems to confuse things when the name assigned here to queryName happens to be the same as one of the matches in the BLAST result
+    #$queryName = File::Basename::fileparse( $blastfile, qr/\.[^.]*$/o ); #$queryName.="_query";
+    $queryName = 'query';
     if (-e $queryfile){
-	open($fhin,$queryfile) || return(0,"*** ERROR sbr: could not open $queryfile  - no such file"); 
+	open($fhin,$queryfile) || confess("*** ERROR sbr: could not open $queryfile  - no such file: $!"); 
 	#$queryName='query';
 	while(<$fhin>){
 	    next if($_=~/^\n/ || $_=~/\// || $_=~/>/ || $_=~/#/ );
 	    $_=~s/\s+//g;
-	    @tmp=split(//,$_);
+	    @tmp=split(//o,$_);
 	    push @query, @tmp;
 	}
 	close $fhin; $fastaFlag='1';
-	$queryLength=$#query+1; 
+	$queryLength=@query;
     }
     else { $fastaFlag='0';$queryName='query';}
 
@@ -200,22 +207,30 @@ sub blastp_to_saf {
     undef @alignedNames; undef @alignedids; $Score_count=0; undef %multi_aligned; $global_count=0; undef %rdb_lines;
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    while(<$fhin>){ 
-	if($_=~/^>/ || $_=~/^Number of Hits/){
+    while(1)
+    {
+	# lkajan: processing of a record is done when the beginning of the /following/ record is reached.
+	# lkajan: the last record therefore is processed when we reach the end of the input file - we do not rely on the
+	# lkajan: Number of Hits line any more - this allows truncated blast input (some user in Yanay's lab has such)
+    	my $bline = <$fhin>;
+	if( !$bline || $bline=~/^>/o )
+	{
+            if( $main::par{debug} ){ warn( "reading ".( $bline ? $bline : "undef" )); }
 	    if($global_count > 0){
 		undef %u_endings;
-		undef @blastdat; @blastdat=@ { $rdb_lines{$id}{'1'} };
+		undef @blastdat; @blastdat=@{ $rdb_lines{$id}{'1'} };
 		$bexp=$blastdat[$#blastdat-1];
 		if($bexp =~ /e/){ @tmp=split(/e/,$bexp); 
 				  if($tmp[0] eq ''){$tmp[0]=1;}
 				  $bexp=$tmp[0] * 10**($tmp[1]);
 		}
-		$includeFlag='yes';
-		if ($bexp > $eThresh) { $includeFlag='no'; }
+		my $includeFlag='yes';
+		if ($bexp > $eThresh) { $includeFlag='no'; if( $main::par{debug} ){ warn("exluding $id: $bexp > $eThresh"); } }
 		@seq=@{ $multi_aligned{'1'} };
 		if( ($includeFlag eq 'yes') && ($tile ne "0")  && ($Score_count > 1) ){
 		    $u_endings{'1'}[0]=$endings{'1'}[0]; $u_endings{'1'}[1]=$endings{'1'}[1];
 		    $mflag=0;@store_rdb_lines=();
+		    # lkajan: this loop handles the case where multiple HSPs are returned
 		    foreach $itnum (2 .. $Score_count){
 			@temp=@{ $multi_aligned{$itnum} };
 			undef @blastdat; @blastdat=@ { $rdb_lines{$id}{$itnum} };
@@ -224,7 +239,7 @@ sub blastp_to_saf {
 					  if($tmp[0] eq ''){$tmp[0]=1;}
 					  $bexp=$tmp[0] * 10**($tmp[1]);
 			}
-			if ($bexp > $eThresh) { delete $rdb_lines{$id}{$itnum}; next; }
+			if ($bexp > $eThresh) { delete $rdb_lines{$id}{$itnum}; if( $main::par{debug}){ warn("skipping $id:$itnum 'cause $bexp > $eThresh"); } next; }
 			$iffy=1;
 			foreach $it ( 1 .. ($itnum-1)){	
 			    if (defined $u_endings{$it}){
@@ -247,6 +262,7 @@ sub blastp_to_saf {
 			$elem=".";
 		    }
 		}
+		if( $main::par{debug} ){ warn("include $includeFlag id $id seq ".join('', @seq )); }
 		if ($includeFlag eq 'yes') { $sequences{$id}=[ @seq ]; }
 		else { $tmp=pop @alignedids; }
 	    }
@@ -257,30 +273,34 @@ sub blastp_to_saf {
 							                   #--- getting name of aligned sequence
 	    for($it=0;$it<=$queryLength-1;$it++){   $seq[$it]="."; }       #initialising array seq
 	
-	    $_=~s/^>//; 
-	    $id=$_; $id=~s/^(\S*)\s+(.*)\s*$/$1/;
-	    $protDspt=$2;  chomp $protDspt; 
-	    if ($id !~ /Number/){ push @alignedids, $id; }
+	    if( $bline )
+	    {
+	        $bline=~s/^>//o; 
+	        $id=$bline; $id=~s/^(\S*)\s+(.*)\s*$/$1/o;
+	        $protDspt=$2;  chomp $protDspt; 
+	        push @alignedids, $id;
+	    }
+	    else { last; }
 	    
 	}     #------------------------------------
-	if ($_=~/^ Score/){ 
+	if ($bline=~/^ Score/){
 	       $Score_count++; 
 	       for($it=0;$it<=$queryLength-1;$it++){ $block_seq[$it]="."; }
 	       undef @ali_para;
 	}
 
-	next                   if ( $Score_count > 1 && $tile==0 );
+	if ( $Score_count > 1 && $tile==0 ){ if( $main::par{debug} ){ warn("skipping $bline 'cause $Score_count > 1 && $tile==0"); } next; }
 #-----------------------------------------------------------------------------------------------------
 	if ( 1 > 0){
-	    if ( $_=~ /\s+Length/){ $len2=$_;$len2=~s/.+=\s*([0-9]+).*$/$1/;$len2=~s/\s//g;} 
-	    if ( $_=~ /Score/ ){
+	    if ( $bline=~ /\s+Length/){ $len2=$bline;$len2=~s/.+=\s*([0-9]+).*$/$1/;$len2=~s/\s//g;} 
+	    if ( $bline=~ /Score/ ){
 		$lali=$pid=$sim=$bitScore=$expect=''; $gap=0;
-		$line=$_;
+		$line=$bline;
 		chomp $line; @tmp=split(/\,/,$line);
 		push @ali_para,@tmp;
 	    }
-	    if ( $_=~ /Identities/){
-		$line=$_; chomp $line;
+	    if ( $bline=~ /Identities/){
+		$line=$bline; chomp $line;
 		@tmp=split(/\,/,$line); push @ali_para,@tmp;
 		foreach $param (@ali_para){
 		    $param=~s/\s+//g;
@@ -294,32 +314,34 @@ sub blastp_to_saf {
 		$lali=$lali-$gap;
 		$qLength=$queryLength;
 		$rdb_lines{$id}{$Score_count}=[$qLength,$len2,$lali,$pid,$sim,$gap,$bitScore,$expect,$protDspt];
-	    } 	
+	    }
 	}
 #-----------------------------------------------------------------------------------------------------
-	if($_=~/^Query:/){ @tmp=split(/\s+/,$_); undef @aligned; undef @inserted_query;
+	if($bline=~/^Query:/){ @tmp=split(/\s+/,$bline); undef @aligned; undef @inserted_query;
 			   $beg=$tmp[1]-1; $end=$tmp[3]-1;
 			   if (! defined $endings{$Score_count}[0]){ $endings{$Score_count}[0]=$beg;}
 			   $endings{$Score_count}[1]=$end;
 			   @inserted_query=split(//,$tmp[2]);
 		      }
-	if($_=~/^Sbjct:/){
-	    @tmp=split(/\s+/,$_); 
-	    @aligned=split(//,$tmp[2]);
+	if($bline=~/^Sbjct:/){
+	    #Sbjct: 333 IDLPFHNVNHIKVTNNTTINLEEHTLHFDLGYQNNQREEHSEPVPHGYMPKPPNSRE 389
+	    @tmp=split(/\s+/o,$bline); 
+	    @aligned=split(//o,$tmp[2]);
 						     #getting rid of insertions at query sequence
 	    print " *** ERROR sbr: blastp_to_saf in lenghts for $id\n"  if ($#inserted_query != $#aligned);
 	    $local_counter=0;
 	    undef @tmp_seq;
 	    for($it=0;$it <= $#inserted_query; $it++){
-		if ($inserted_query[$it] =~ /[a-z_A-Z]/){
+		if ($inserted_query[$it] =~ /[a-z_A-Z]/o){
 		    if(! $fastaFlag){$query[$beg + $local_counter]=$inserted_query[$it];}
 		    $tmp_seq[$local_counter]=$aligned[$it];
 		    $local_counter++;
 		}
-	    }    
+	    }
 	    #@aligned=@tmp_seq;                     #-------------------------------------------
 #+++++++++++=
 	    
+	    if( $main::par{debug} ){ warn("seq after gap removal #$Score_count ".substr( $id, 0, 8 ).": ".join('', @tmp_seq )); }
 	    @block_seq[$beg .. ($beg+$#tmp_seq)]=@tmp_seq;    #----alignig part of the subject seguence
 	    
 	    $multi_aligned{$Score_count}=[ @block_seq ]; 
@@ -327,33 +349,41 @@ sub blastp_to_saf {
     }
     close $fhin;
 
+if( $main::par{debug} ){ warn("queryName: $queryName"); warn("alignedids: @alignedids"); }
 				                      #getting rid of repeats in the list    
     undef @namesSort;
     push @namesSort, $queryName;
-    $Lname=$queryName; $Lname=~tr/A-Z/a-z/; 
-    $Cname=$Lname; $Cname=~tr/a-z/A-Z/; 
+    $Lname=$queryName; $Lname = lc($Lname);
     
-    foreach $it (@alignedids){
-	$rflag=0; @tmp=split(/\|/,$it);
-	if( $it eq $queryName || $it eq $Lname || $it eq $Cname){ $rflag=1;}
-	else { 
-	    foreach $elem (@tmp){
-		if($elem eq $queryName || $elem eq $Lname || $elem eq $Cname){$rflag=1;}
-	    }
-	}
-	if($rflag == 0){push @namesSort, $it;}
+    if( $main::par{filterOutQueryNameHits} )
+    {
+    	foreach $it (@alignedids){
+		$rflag=0; @tmp=split(/\|/o,$it);
+		if( $it eq $queryName || lc($it) eq $Lname ){ $rflag=1;}
+		else { 
+	    	    foreach $elem (@tmp){
+			if($elem eq $queryName || lc($elem) eq $Lname ){$rflag=1;}
+	    	    }
+		}
+ 		if($rflag == 0){push @namesSort, $it;}
+    	}
     }
+    else { push @namesSort, @alignedids }
     @alignedids=@namesSort[1 .. $#namesSort];
     undef @namesSort;
-    push @namesSort, $queryName;
-    foreach $it (@alignedids){                      
-	$indicator=0;
-	foreach $es (@namesSort){
-	    if ( $it eq $es ){ $indicator++; last;}
+    {
+	my %namesSort = ( $queryName => 1 );
+    	push @namesSort, $queryName;
+	# lkajan: the purpose of the following seem to be to remove duplicate identifiers from @alignedids. Now what about multiple HSPs for the same one sequence?
+	# lkajan: Why do we want to eliminate those? This does not seem right to me. However the 'logic' below seems to rely on the uniqueness of the members of
+	# lkajan: @alignedids so let's leave this code in place
+	foreach $it (@alignedids){
+	    if( !$namesSort{$it} ){ push @namesSort, $it; } else { if( $main::par{debug} ){ cluck("duplicate identifier in blast output '$it' skipped"); } }
+	    $namesSort{$it}++;
 	}
-	if ($indicator < 1){ push @namesSort, $it; }
-    } 
+    }
     @alignedNames=@namesSort[1 .. $#namesSort];
+if( $main::par{debug} ){ warn("namesSort: @namesSort"); warn("alignedNames: @alignedNames"); }
                                                        #-------------------------------------
  
                                                        #--filtering alignment
@@ -396,10 +426,13 @@ if($short eq "1"){
     }
     %sequences=%tmp_sequences;
 }
-#foreach $key (@alignedNames){ 
-#    print ">>>>>>>>>>>>".$key,"\n";
-#    print @{ $sequences{$key} },"\n";
-#}
+if( $par{debug} )
+{
+	foreach $key (@alignedNames)
+	{ 
+		warn( "alignedName: $key\n".join('', @{$sequences{$key}} ) );
+	}
+}
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -549,11 +582,13 @@ sub helpLocal {
 	printf "%5s %-15s %-20s %-s\n","","",        "",        "after filtering (def: 1500)";
 	printf "%5s %-15s=%-20s %-s\n","","tile",     "x",      "either just 'tile' -> will tile blast prediction in saf";
 	printf "%5s %-15s %-20s %-s\n","","",        "",        "or 'tile=(0|1)' to enable|disable tiling (def 1)";
-	printf "%5s %-15s=%-20s %-s\n","","eSaf",   "x",         "maximum blast expect value to be included in 'saf' file";
-	printf "%5s %-15s%-20s %-s\n","","short",                "will write short id's in the in the saf output file \n";
-	printf "%5s %-15s=%-20s %-s\n","","extSaf",   "x",         "specify an extension for the saf file(useful for list processing";
-	printf "%5s %-15s=%-20s %-s\n","","extFasta",   "x",       "specify an extension for the fasta file(useful for list processing";
-	printf "%5s %-15s=%-20s %-s\n","","extRdb",   "x",       "specify an extension for the rdb file(useful for list processing";
+	printf "%5s %-15s=%-20s %-s\n","","eSaf",   "x",        "maximum blast expect value to be included in 'saf' file";
+	printf "%5s %-15s=%-20s %-s\n","","short",  "x",        "will write short id's in the in the saf output file \n";
+	printf "%5s %-15s=%-20s %-s\n","","extSaf",   "x",      "specify an extension for the saf file(useful for list processing";
+	printf "%5s %-15s=%-20s %-s\n","","extFasta",   "x",    "specify an extension for the fasta file(useful for list processing";
+	printf "%5s %-15s=%-20s %-s\n","","extRdb",   "x",      "specify an extension for the rdb file(useful for list processing";
+	printf "%5s %-15s=%-20s %-s\n","","debug",   "x",       "debugging messages [0*|1]";
+	printf "%5s %-15s=%-20s %-s\n","","filterOutQueryNameHits", "x", "filter out hits with the same name as query [0*|1]";
 	exit;
     }
 }				# end of helpLocal
@@ -617,4 +652,4 @@ sub fileListRd {
 #==================================================================================
 
 
-
+# vim:ai:

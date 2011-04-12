@@ -1,7 +1,6 @@
 #!/usr/bin/perl
-##!/usr/bin/perl -w
-##!/usr/sbin/perl -w
-#
+use Carp qw| cluck :DEFAULT |;
+
 $scrName=$0;$scrName=~s/^.*\/|\.pl//g;
 $scrGoal="filters redudancy in SAF files\n".
     "     \t \n".
@@ -94,8 +93,7 @@ foreach $arg (@ARGV){
 	    foreach $kwd (@kwd){ 
 		if ($arg =~ /^$kwd=(.+)$/){$Lok=1;$par{$kwd}=$1;
 					   last;}}}
-	if (! $Lok){ print "*** wrong command line arg '$arg'\n";
-		     exit;}}}
+	if (! $Lok){ die("*** wrong command line arg '$arg'");}}}
 
 $fileIn=$fileIn[1];
 die ("missing input redundancy (second arg or red=[0-100])\n") if (! defined $red);
@@ -118,8 +116,7 @@ $#fileTmp=0;
 foreach $fileIn (@fileIn){
     if ( ($#fileIn==1 && $LisList) || $fileIn =~/\.list/) {
 	($Lok,$msg,$file,$tmp)=
-	    &fileListRd($fileIn);if (! $Lok){ print "*** ERROR $scrName: input list\n",$msg,"\n";
-					      exit; }
+	    &fileListRd($fileIn);if (! $Lok){ die("*** ERROR $scrName: input list\n".$msg); }
 	@tmpf=split(/,/,$file); 
 	push(@fileTmp,@tmpf);
 	next;}
@@ -135,12 +132,11 @@ $nfileIn= $#fileIn;
 $fileTmp="TMP_safFilterRed".$$.".tmp";
 foreach $fileIn (@fileIn){
     ++$ctfile;
-    if (! -e $fileIn){print "-*- WARN $scrName: no fileIn=$fileIn\n";
-		      next;}
+    if (! -e $fileIn){ warn( "-*- WARN $scrName: no fileIn=$fileIn" ); next;}
 #    print "--- $scrName: working on '$fileIn'\n";
-    printf 
+    if( $Lverb ){ printf 
 	"--- $scrName: working on %-25s %4d (%4.1f perc of job)\n",
-	$fileIn,$ctfile,(100*$ctfile/$nfileIn);
+	$fileIn,$ctfile,(100*$ctfile/$nfileIn); }
 				# ------------------------------
 				# read SAF file
 				#    x
@@ -149,9 +145,7 @@ foreach $fileIn (@fileIn){
 	&safRd($fileIn);          
     %saf=%tmp;
     undef %tmp;
-    if (! $Lok){
-	print "*** ERROR $scrName: after $fileIn\n".$msg."\n";
-	next; }
+    if (! $Lok){ warn( "*** ERROR $scrName: after $fileIn\n".$msg); next; }
 #    return(&errSbrMsg("after call xyz",$msg)) if (! $Lok);
 
 				# ------------------------------
@@ -219,8 +213,7 @@ foreach $fileIn (@fileIn){
 				# ------------------------------
 	($Lok,$msg)=
 	    &safWrt($fileOut);  
-	if (! $Lok){ print "*** ERROR $scrName: after safWrt($fileOut)\n".$msg."\n";
-		     next; }
+	if (! $Lok){ warn("*** ERROR $scrName: after safWrt($fileOut)\n".$msg); next; }
 #	return(&errSbrMsg("after call xyz",$msg)) if (! $Lok);
 	undef %tmp;
 	
@@ -272,8 +265,7 @@ sub errScrMsg {local($txtInLoc,$msgInLoc,$scrNameLocy) = @_ ;
 		   $msgInLoc=~s/\n\n+/\n/g;}
 	       else {
 		   $msgInLoc="";}
-	       print "*** ERROR $scrNameLocy: $txtInLoc".$msgInLoc;
-	       exit; 
+	       confess( "*** ERROR $scrNameLocy: $txtInLoc".$msgInLoc );
 }				# end of errScrMsg
 
 #===============================================================================

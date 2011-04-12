@@ -1,3 +1,107 @@
+librg-utils-perl (1.0.33) stable; urgency=low
+
+  * blastpgp_to_saf.pl line 15 warning cleared
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Fri, 18 Feb 2011 18:45:45 +0100
+
+librg-utils-perl (1.0.32) stable; urgency=low
+
+  * blast2saf.pl warning on line 216 cleared
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Sun, 30 Jan 2011 21:14:25 +0100
+
+librg-utils-perl (1.0.31) stable; urgency=low
+
+  * blast2saf.pl syntax error fixed
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Fri, 28 Jan 2011 22:54:07 +0100
+
+librg-utils-perl (1.0.30) stable; urgency=low
+
+  * blast2saf.pl and blastpgp_to_saf.pl much cleaner logic for reading
+    last record of blast results
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Fri, 28 Jan 2011 16:28:50 +0100
+
+librg-utils-perl (1.0.29) stable; urgency=low
+
+  * blast2saf.pl and blastpgp_to_saf.pl bugs introduced in prev version
+    fixed
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 27 Jan 2011 16:26:34 +0100
+
+librg-utils-perl (1.0.28) stable; urgency=low
+
+  * blast2saf.pl and blastpgp_to_saf.pl are now capable of parsing a blast
+    file that does not have the footer part but just ends after a record
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 27 Jan 2011 15:28:46 +0100
+
+librg-utils-perl (1.0.27) stable; urgency=low
+
+  * silenced safFilterRed.pl in non-verbose non-debug mode
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 26 Jan 2011 12:58:38 +0100
+
+librg-utils-perl (1.0.26) stable; urgency=low
+
+  * renamed dbSwiss.pl to dbSwiss, added man page
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 26 Jan 2011 10:07:31 +0100
+
+librg-utils-perl (1.0.25) stable; urgency=low
+
+  * added dbSwiss.pl
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Mon, 24 Jan 2011 22:30:37 +0100
+
+librg-utils-perl (1.0.24) stable; urgency=low
+
+  * fixed endless loop bug
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Fri, 21 Jan 2011 16:22:47 +0100
+
+librg-utils-perl (1.0.23) stable; urgency=low
+
+  * Added --use-blastfile cmd line argument
+  * Recoded parts to make it more readable
+  * Made certain blast problems (incorrect blast file) lethal
+  * Disabled 'rerun blast if too big blast input file' feature
+  * Added logic to read only first 300 alignments from blast file
+    that satisfy the percent identity limit requirements
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Fri, 21 Jan 2011 15:35:02 +0100
+
+librg-utils-perl (1.0.22) stable; urgency=low
+
+  * Fixed min-seqlen = 50 issue
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 20 Jan 2011 14:19:23 +0100
+
+librg-utils-perl (1.0.21) stable; urgency=low
+
+  * Recommends clustalw - runNewPSIC.pl requires it
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 19 Jan 2011 17:33:01 +0100
+
+librg-utils-perl (1.0.20) stable; urgency=low
+
+  * psic Depends added
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 19 Jan 2011 17:24:01 +0100
+
+librg-utils-perl (1.0.19) stable; urgency=low
+
+  * moved in runNewPSIC.pl from snapfun
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 19 Jan 2011 16:41:10 +0100
+
+librg-utils-perl (1.0.18) stable; urgency=low
+
+  * RG/Utils/Copf.pm: fixed sequence name issue with trailing '|'
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Tue, 11 Jan 2011 16:29:34 +0100
+
 librg-utils-perl (1.0.17) stable; urgency=low
 
   * RG/Utils/Copf.pm: FASTA sequences can now consist of [A-Z.~_!-]

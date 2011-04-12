@@ -1,4 +1,6 @@
-#! /usr/bin/perl -w
+#!/usr/bin/perl -w
+use Carp qw| cluck :DEFAULT |;
+our $debug;
 
 if ($#ARGV < 0) { print  "*** ERROR blastpgp_to_saf.pl : no arguments given\n"; print  FHERROR "*** ERROR blastpgp_to_saf.pl : no arguments given\n"; die; }
 
@@ -11,6 +13,7 @@ foreach $arg (@ARGV){
 	elsif ($arg=~/^red=(.*)$/)               { $filterThre  =        $1;}
 	elsif ($arg=~/^maxAli=(.*)$/)            { $maxAli      =        $1;}
         elsif ($arg=~/^tile=(.*)$/)              { $alignTiling =        $1;}
+        elsif ($arg=~/^debug=(.*)$/)             { $debug =              $1;}
 	else {
 	    print "*** wrong command line arg '$arg'\n";
 	    print FHERROR "*** wrong command line arg '$arg'\n";
@@ -142,7 +145,7 @@ sub blastp_to_saf {
     $local_counter=0;
     while(<$fhin>){
 	if($_=~/^Searching../){
-	    $local_counter ++;
+	    $local_counter++;
 	}
 	last if($local_counter == $iter);
     }
@@ -152,8 +155,14 @@ sub blastp_to_saf {
     undef @alignedNames; undef @alignedids; $Score_count=0; undef %multi_aligned; $global_count=0; undef %rdb_lines;
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    while(<$fhin>){ 
-	if($_=~/^>/ || $_=~/^Number of Hits/){
+    # lkajan: processing of a record is done when the beginning of the /following/ record is reached.
+    # lkajan: the last record therefore is processed when we reach the end of the input file - we do not rely on the
+    # lkajan: Number of Hits line any more - this allows truncated blast input (some user in Yanay's lab has such)
+    while(1)
+    {
+	my $bline = <$fhin>;
+	if( !$bline || $bline=~/^>/o )
+	{
 	    if($global_count > 0){
 		undef %u_endings;
 		@seq=@{ $multi_aligned{'1'} };
@@ -190,13 +199,17 @@ sub blastp_to_saf {
 							                   #--- getting name of aligned sequence
 	    for($it=0;$it<=$queryLength-1;$it++){   $seq[$it]="."; }       #initialising array seq
 	
-	    $_=~s/^>//; 
-	    $id=$_; $id=~s/^(\S*)\s+(.*)\s*$/$1/;
-	    $protDspt=$2;  chomp $protDspt; 
-	    if ($id !~ /Number/){push @alignedids, $id;}
+	    if( $bline )
+	    {
+	    	$bline=~s/^>//o; 
+	    	$id=$bline; $id=~s/^(\S*)\s+(.*)\s*$/$1/o;
+	    	$protDspt=$2;  chomp $protDspt; 
+	    	push @alignedids, $id;
+	    }
+	    else { last; }
 	    
 	}                                                   #------------------------------------
-	if ($_=~/^ Score/){ 
+	if ($bline=~/^ Score/){ 
 	       $Score_count++; 
 	       for($it=0;$it<=$queryLength-1;$it++){ $block_seq[$it]="."; }
 	       undef @ali_para;
@@ -205,15 +218,15 @@ sub blastp_to_saf {
 	next                   if ( $Score_count > 1 && $tile==0 );
 #-----------------------------------------------------------------------------------------------------
 	if ( $rdb ne '0' && $rdb ne ''){
-	    if ( $_=~ /\s+Length/){ $len2=$_;$len2=~s/.+=\s*([0-9]+).*$/$1/;$len2=~s/\s//g;} 
-	    if ( $_=~ /Score/ ){
+	    if ( $bline=~ /\s+Length/){ $len2=$bline;$len2=~s/.+=\s*([0-9]+).*$/$1/;$len2=~s/\s//g;} 
+	    if ( $bline=~ /Score/ ){
 		$lali=$pid=$sim=$bitScore=$expect=''; $gap=0;
-		$line=$_;
+		$line=$bline;
 		chomp $line; @tmp=split(/\,/,$line);
 		push @ali_para,@tmp;
 	    }
-	    if ( $_=~ /Identities/){
-		$line=$_; chomp $line;
+	    if ( $bline=~ /Identities/){
+		$line=$bline; chomp $line;
 		@tmp=split(/\,/,$line); push @ali_para,@tmp;
 		foreach $param (@ali_para){
 		    $param=~s/\s+//g;
@@ -230,14 +243,14 @@ sub blastp_to_saf {
 	    } 	
 	}
 #-----------------------------------------------------------------------------------------------------
-	if($_=~/^Query:/){ @tmp=split(/\s+/,$_); undef @aligned; undef @inserted_query;
+	if($bline=~/^Query:/){ @tmp=split(/\s+/,$bline); undef @aligned; undef @inserted_query;
 			   $beg=$tmp[1]-1; $end=$tmp[3]-1;
 			   if (! defined $endings{$Score_count}[0]){ $endings{$Score_count}[0]=$beg;}
 			   $endings{$Score_count}[1]=$end;
 			   @inserted_query=split(//,$tmp[2]);
 		      }
-	if($_=~/^Sbjct:/){
-	    @tmp=split(/\s+/,$_); 
+	if($bline=~/^Sbjct:/){
+	    @tmp=split(/\s+/,$bline); 
 	    @aligned=split(//,$tmp[2]);
 						     #getting rid of insertions at query sequence
 	    print " *** ERROR sbr: blastp_to_saf in lenghts for $id\n"  if ($#inserted_query != $#aligned);
@@ -445,4 +458,4 @@ sub print_saf_file{
 
 
 
-
+# vim:ai:
