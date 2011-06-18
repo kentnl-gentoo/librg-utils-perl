@@ -10,20 +10,33 @@
 #export DH_VERBOSE=1
 
 
+# These are used for cross-compiling and for saving the configure script
+# from having to guess our platform (since we know it already)
+DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+ifneq ($(DEB_HOST_GNU_TYPE),$(DEB_BUILD_GNU_TYPE))
+CROSS= --build $(DEB_BUILD_GNU_TYPE) --host $(DEB_HOST_GNU_TYPE)
+else
+CROSS= --build $(DEB_BUILD_GNU_TYPE)
+endif
 
 
 
-configure: configure-stamp
-configure-stamp:
+config.status: configure
 	dh_testdir
 	# Add here commands to configure the package.
-
-	touch configure-stamp
+ifneq "$(wildcard /usr/share/misc/config.sub)" ""
+	cp -f /usr/share/misc/config.sub config.sub
+endif
+ifneq "$(wildcard /usr/share/misc/config.guess)" ""
+	cp -f /usr/share/misc/config.guess config.guess
+endif
+	./configure $(CROSS) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info  --sysconfdir=/etc  CFLAGS="$(CFLAGS)" CXXFLAGS="$(CXXFLAGS)" LDFLAGS="-Wl,-z,defs"
 
 
 build: build-stamp
 
-build-stamp: configure-stamp  
+build-stamp:  config.status 
 	dh_testdir
 
 	# Add here commands to compile the package.
@@ -35,10 +48,11 @@ build-stamp: configure-stamp
 clean: 
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp configure-stamp
+	rm -f build-stamp 
 
 	# Add here commands to clean up after the build process.
-	$(MAKE) clean
+	[ ! -f Makefile ] || $(MAKE) distclean
+	rm -f config.sub config.guess
 
 	dh_clean 
 
@@ -51,19 +65,18 @@ install: build
 	# Add here commands to install the package into debian/librg-utils-perl.
 	$(MAKE) DESTDIR=$(CURDIR)/debian/librg-utils-perl install
 
-	dh_install -i
 
 # Build architecture-independent files here.
 binary-indep: build install
 	dh_testdir
 	dh_testroot
-#	dh_installchangelogs ChangeLog
+	dh_installchangelogs -XChangeLog
 	dh_installdocs
+#	dh_lintian
 	dh_installexamples
-	dh_installchangelogs
 #	dh_install
 #	dh_installmenu
-	dh_installdebconf	
+#	dh_installdebconf	
 #	dh_installlogrotate
 #	dh_installemacsen
 #	dh_installpam
@@ -74,11 +87,11 @@ binary-indep: build install
 #	dh_installinfo
 	dh_installman
 	dh_link
-	dh_strip
+#	dh_strip
 	dh_compress
 	dh_fixperms
-#	dh_perl
-	dh_makeshlibs
+	dh_perl
+#	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol
@@ -87,7 +100,6 @@ binary-indep: build install
 
 # Build architecture-dependent files here.
 binary-arch: build install
-# We have nothing to do by default.
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install configure
+.PHONY: build clean binary-indep binary-arch binary install 

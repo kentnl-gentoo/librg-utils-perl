@@ -226,9 +226,9 @@ sub blastp_to_saf {
 		}
 		my $includeFlag='yes';
 		if ($bexp > $eThresh) { $includeFlag='no'; if( $main::par{debug} ){ warn("exluding $id: $bexp > $eThresh"); } }
-		@seq=@{ $multi_aligned{'1'} };
+		@seq=@{ $multi_aligned{1} };
 		if( ($includeFlag eq 'yes') && ($tile ne "0")  && ($Score_count > 1) ){
-		    $u_endings{'1'}[0]=$endings{'1'}[0]; $u_endings{'1'}[1]=$endings{'1'}[1];
+		    $u_endings{1}[0]=$endings{1}[0]; $u_endings{1}[1]=$endings{1}[1];
 		    $mflag=0;@store_rdb_lines=();
 		    # lkajan: this loop handles the case where multiple HSPs are returned
 		    foreach $itnum (2 .. $Score_count){
@@ -241,7 +241,8 @@ sub blastp_to_saf {
 			}
 			if ($bexp > $eThresh) { delete $rdb_lines{$id}{$itnum}; if( $main::par{debug}){ warn("skipping $id:$itnum 'cause $bexp > $eThresh"); } next; }
 			$iffy=1;
-			foreach $it ( 1 .. ($itnum-1)){	
+			# lkajan: This extends $u_endings{$it}[0..1] only in case $endings{$itnum}[0..1] entirely covers all $u_endings seen so far
+			foreach $it ( 1 .. ($itnum-1)){
 			    if (defined $u_endings{$it}){
 				if ($endings{$itnum}[0] >= $u_endings{$it}[0]  && $endings{$itnum}[0] <= $u_endings{$it}[1] ){ $iffy=0;last;}
 				if ($endings{$itnum}[1] >= $u_endings{$it}[0]  && $endings{$itnum}[1] <= $u_endings{$it}[1] ){ $iffy=0;last;}
@@ -317,18 +318,28 @@ sub blastp_to_saf {
 	    }
 	}
 #-----------------------------------------------------------------------------------------------------
-	if($bline=~/^Query:/){ @tmp=split(/\s+/,$bline); undef @aligned; undef @inserted_query;
-			   $beg=$tmp[1]-1; $end=$tmp[3]-1;
-			   if (! defined $endings{$Score_count}[0]){ $endings{$Score_count}[0]=$beg;}
+	# 0      1   2                                                            3
+	# Query: 0   ---
+	# Query: 0                                                               
+	# Query: 85  AGAWRLLGVPGAAGPSGSSGSPGAAGASGSAGA                            117 
+	# Query: 118 PGAAGASGFPG-----------------------------------RPGAARASGAAGAS 142
+	# Query: 203 PLLVPEREVEDAARATSTEAFQPVYTREAAYA 234
+	if($bline=~/^Query:/){ @tmp=split(/\s+/o,$bline); undef @aligned; undef @inserted_query;
+			   $beg=$tmp[1]-1; if( $beg == -1 ) { $end = -1; } else { $end=$tmp[3]-1; }
+			   if( !defined( $endings{$Score_count}[0] ) || $endings{$Score_count}[0] < 0 ){ $endings{$Score_count}[0]=$beg;}
 			   $endings{$Score_count}[1]=$end;
-			   @inserted_query=split(//,$tmp[2]);
+			   if( defined($tmp[2]) ){ @inserted_query=split(//o,$tmp[2]); }
 		      }
 	if($bline=~/^Sbjct:/){
-	    #Sbjct: 333 IDLPFHNVNHIKVTNNTTINLEEHTLHFDLGYQNNQREEHSEPVPHGYMPKPPNSRE 389
+	    # Sbjct: 693 TGA                                                          695
+	    # Sbjct: 189                                                              189
+	    # Sbjct: 696 KGVRGMPGFPGASGEQGLKGFPGDPGREGFPGP                            728
+	    # Sbjct: 729 PGFMGPRGSKGTTGLPGPDGPPGPIGLPGPAGPPGDRGIPGEVLGAQPGTRGDAGLPGQP 788
+	    # Sbjct: 848 LGQPGSPGLGGLPGDRGEPGDPGVPGPVGMKG 879
 	    @tmp=split(/\s+/o,$bline); 
 	    @aligned=split(//o,$tmp[2]);
 						     #getting rid of insertions at query sequence
-	    print " *** ERROR sbr: blastp_to_saf in lenghts for $id\n"  if ($#inserted_query != $#aligned);
+	    cluck( " *** ERROR sbr: blastp_to_saf in lenghts for $id" ) if (@inserted_query != @aligned);
 	    $local_counter=0;
 	    undef @tmp_seq;
 	    for($it=0;$it <= $#inserted_query; $it++){
@@ -342,9 +353,12 @@ sub blastp_to_saf {
 #+++++++++++=
 	    
 	    if( $main::par{debug} ){ warn("seq after gap removal #$Score_count ".substr( $id, 0, 8 ).": ".join('', @tmp_seq )); }
-	    @block_seq[$beg .. ($beg+$#tmp_seq)]=@tmp_seq;    #----alignig part of the subject seguence
-	    
-	    $multi_aligned{$Score_count}=[ @block_seq ]; 
+	    if( $beg >= 0 )
+	    {
+		@block_seq[$beg .. ($beg+$#tmp_seq)]=@tmp_seq;    #----alignig part of the subject seguence
+
+		$multi_aligned{$Score_count}=[ @block_seq ];
+	    }
 	}
     }
     close $fhin;

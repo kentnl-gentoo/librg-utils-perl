@@ -243,11 +243,21 @@ sub blastp_to_saf {
 	    } 	
 	}
 #-----------------------------------------------------------------------------------------------------
-	if($bline=~/^Query:/){ @tmp=split(/\s+/,$bline); undef @aligned; undef @inserted_query;
-			   $beg=$tmp[1]-1; $end=$tmp[3]-1;
-			   if (! defined $endings{$Score_count}[0]){ $endings{$Score_count}[0]=$beg;}
+	# lkajan: below is a probably blast bug, with the Query: 0 line...
+	# 0      1    2
+	# Query: 0   ----                                                        
+	#
+	# Sbjct: 64  PAQG                                                         67
+	# Query: 0                                                               
+	#
+	# Sbjct: 67                                                               67
+	# Query: 1713 HVETRWHCTVCEDYDLCINCYNTKSHAHKMVKWGLGLDDEGSSQGEPQSKSPQESRRVSI 1772
+	# Query: 1890 PGTPTQQPSTPQT 1902
+	if($bline=~/^Query:/){ @tmp=split(/\s+/o,$bline); undef @aligned; undef @inserted_query;
+			   $beg=$tmp[1]-1; if( $beg == -1 ) { $end = -1; } else { $end=$tmp[3]-1; }
+			   if (! defined $endings{$Score_count}[0] || $endings{$Score_count}[0] < 0 ){ $endings{$Score_count}[0]=$beg;}
 			   $endings{$Score_count}[1]=$end;
-			   @inserted_query=split(//,$tmp[2]);
+			   if( defined($tmp[2]) ){ @inserted_query=split(//o,$tmp[2]); }
 		      }
 	if($bline=~/^Sbjct:/){
 	    @tmp=split(/\s+/,$bline); 
