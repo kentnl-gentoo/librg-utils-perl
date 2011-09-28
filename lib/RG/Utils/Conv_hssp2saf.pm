@@ -83,6 +83,7 @@ L<http://rostlab.org/>
 =cut
 
 package RG::Utils::Conv_hssp2saf;
+no warnings 'deprecated';
 
 INIT: {
     $scrName=$0;$scrName=~s/^.*\/|\.pl//g;
@@ -121,7 +122,7 @@ sub conv_hssp2saf {
 	printf "     \t %-15s  %-20s %-s\n","noScreen", "no value","";
 	printf "     \t %-15s  %-20s %-s\n","expand",   "no value","(do expand the insertion list)";
 #    printf "     \t %-15s  %-20s %-s\n","",   "no value","";
-	if (defined %par){
+	if (%par){
 	    printf "     \t %-15s  %-20s %-s\n","-" x 15 ,"-" x 20,"-" x 30;
 	    printf "     \t %-15s  %-20s %-s\n","other:","default settings: "," ";
 	    foreach $kwd (@kwd){
@@ -193,7 +194,7 @@ sub convHssp2saf {
 #	elsif ($arg=~/^=(.*)$/) { $=$1; }
 	elsif (-e $arg)                         { push(@fileIn,$arg); push(@chainIn,"*");}
 	elsif ($arg=~/^(.*\.hssp)\_([A-Z0-9])/) { push(@fileIn,$1);   push(@chainIn,$2);}
-	elsif (defined %par && $#kwd>0)         { 
+	elsif (%par && $#kwd>0)         { 
 	    $Lok=0; 
 	    foreach $kwd (@kwd){
 		if ($arg =~ /^$kwd=(.+)$/){$Lok=1;$par{"$kwd"}=$1;
@@ -1178,7 +1179,7 @@ sub safWrt {
     return(0,"*** ERROR $sbrName: no acceptable output file ($fileOutLoc) defined\n") 
         if (! defined $fileOutLoc || length($fileOutLoc)<1 || $fileOutLoc !~/\w/);
     return(0,"*** ERROR $sbrName: no input given (or not input{NROWS})\n") 
-        if (! defined %tmp || ! %tmp || ! defined $tmp{"NROWS"} );
+        if (! %tmp || ! defined $tmp{"NROWS"} );
     return(0,"*** ERROR $sbrName: tmp{NROWS} < 1\n") 
         if ($tmp{"NROWS"} < 1);
     $tmp{"PER_LINE"}=50         if (! defined $tmp{"PER_LINE"});

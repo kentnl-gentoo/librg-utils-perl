@@ -270,6 +270,7 @@ L<http://rostlab.org/>
 package RG::Utils::Copf;
 use Carp qw| cluck :DEFAULT |;
 use File::Temp;
+no warnings 'deprecated';
 #------------------------------------------------------------------------------#
 #	Copyright				        	1998	       #
 #	Burkhard Rost		rost@EMBL-Heidelberg.DE			       #
@@ -1345,7 +1346,7 @@ sub amino_acid_convert_3_to_1 {
     return(0,"no input to $sbrName3") if (! defined $three_letter_acid);
 				# initialise translation table
     &amino_acid_convert_3_to_1_ini()  
-	if (! defined %amino_acid_convert_3_to_1);
+	if (! %amino_acid_convert_3_to_1);
 				# not found
     return(0,"no conversion for acid=$three_letter_acid!","unk") 
 	if (! defined $amino_acid_convert_3_to_1{$three_letter_acid});
@@ -1403,7 +1404,7 @@ sub brIniErr {
 #-------------------------------------------------------------------------------
     #if( $par{"debug"} ) { cluck( "$scrName:brIniErr" ); }
     $sbrName="$scrName:".__FILE__.":".__LINE__.":brIniErr";
-    @kwd= keys (%par)       if (defined %par && %par);
+    @kwd= keys (%par)       if (%par);
 				# ------------------------------
     undef %tmp; $#excl=0;	# exclude some keyword from check?
     @excl=split(/,/,$local) if (defined $local);
@@ -1448,7 +1449,7 @@ sub brIniGetArg {
 				  last;}}
 				# search in defaults
     if ((! defined $par{"dirIn"} || ! -d $par{"dirIn"}) && 
- 	defined %defaults && %defaults){
+ 	%defaults){
 	if (defined $defaults{"dirIn"}){
 	    $par{"dirIn"}=$defaults{"dirIn"};
 	    $par{"dirIn"}=$PWD    
@@ -1457,7 +1458,7 @@ sub brIniGetArg {
     $par{"dirIn"}.="/" if (defined $par{"dirIn"} && -d $par{"dirIn"} && $par{"dirIn"}!~/\/$/); #  slash
     $par{"dirIn"}=""   if (! defined $par{"dirIn"} || ! -d $par{"dirIn"}); # empty
                                 # ------------------------------
-    if (defined %par && %par){  # all keywords used in script
+    if (%par){  # all keywords used in script
         @tmp=sort keys (%par);}
     else{
 	$#tmp=0;}
@@ -1641,7 +1642,7 @@ sub brIniHelp {
 	    print "-" x 80,"\n"; 
 	    print "---    'special' keywords:\n"; 
 	    print @scrSpecialLoc,"\n"; }
-        if (defined %par) {
+        if (%par) {
 	    @kwdLoc=sort keys (%par);
 	    if ($#kwdLoc>1){
 		print $syntaxLoc;
@@ -1717,7 +1718,7 @@ sub brIniHelp {
 				# ------------------------------
     elsif ($#PARAMS<2 && $PARAMS[1] eq "def"){
 	print $fstLineLoc;
-        if (defined %par){
+        if (%par){
             @kwdLoc=sort keys (%par);
             if ($#kwdLoc>1){
                 print  "---    the default settings are:\n";
@@ -1749,7 +1750,7 @@ sub brIniHelp {
 	$tmpSpecial=$tmp{"$tmp2"} if (! defined $tmp{"$tmp"} && defined $tmp{"$tmp2"});
 
         $#kwdLoc=$#expLoc=0;    # (1) get all respective keywords
-        if (defined %par && $kwdHelp ne "special"){
+        if (%par && $kwdHelp ne "special"){
             @kwdLoc=keys (%par);$#tmp=0;
             foreach $kwd (@kwdLoc){
                 push(@tmp,$kwd) if ($kwd =~/$kwdHelp/i);}
@@ -1840,7 +1841,7 @@ sub brIniHelp {
     elsif ($#PARAMS>=2  && $PARAMS[1] eq "def"){
 	$kwdHelp=$PARAMS[2];
 	print "-" x 80, "\n"; print "--- Perl script $scrName.pl (",$tmp{"sourceFile"},")\n"; 
-        if (defined %par){
+        if (%par){
             @kwdLoc=sort keys (%par);
             if ($#kwdLoc>1){
                 print  "---    the default settings are:\n";
@@ -2056,7 +2057,7 @@ sub brIniSet {
 #                               e.g. adding directories to file names asf
 #-------------------------------------------------------------------------------
     $sbrName="lib-br:brIniSet";
-    @kwd=sort keys(%par) if (defined %par && %par);
+    @kwd=sort keys(%par) if (%par);
 				# ------------------------------
     $#tmp=0;			# purge empty keywords
     foreach $kwd (@kwd){
@@ -2188,7 +2189,7 @@ sub brIniWrt {
 #-------------------------------------------------------------------------------
     $sbrName="lib-br:"."brIniWrt";
     
-    return(0,"*** $sbrName: no settings defined in %par\n") if (! defined %par || ! %par);
+    return(0,"*** $sbrName: no settings defined in %par\n") if (! %par);
     $fhTraceLocSbr="STDOUT"    if (! defined $fhTraceLocSbr || ! $fhTraceLocSbr);
 
     if (defined $Date) {
@@ -7368,7 +7369,7 @@ sub safWrt {
     return(0,"*** ERROR $sbrName: no acceptable output file ($fileOutLoc) defined\n") 
         if (! defined $fileOutLoc || length($fileOutLoc)<1 || $fileOutLoc !~/\w/);
     return(0,"*** ERROR $sbrName: no input given (or not input{NROWS})\n") 
-        if (! defined %tmp || ! %tmp || ! defined $tmp{"NROWS"} );
+        if (! %tmp || ! defined $tmp{"NROWS"} );
     return(0,"*** ERROR $sbrName: tmp{NROWS} < 1\n") 
         if ($tmp{"NROWS"} < 1);
     $tmp{"PER_LINE"}=50         if (! defined $tmp{"PER_LINE"});

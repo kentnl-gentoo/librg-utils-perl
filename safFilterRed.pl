@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 use Carp qw| cluck :DEFAULT |;
+no warnings 'deprecated';
 
 $scrName=$0;$scrName=~s/^.*\/|\.pl//g;
 $scrGoal="filters redudancy in SAF files\n".
@@ -48,7 +49,7 @@ if ($#ARGV<2){			# help
 #    printf "%5s %-15s %-20s %-s\n","","noScreen", "no value","";
 #    printf "%5s %-15s=%-20s %-s\n","","",   "x", "";
 #    printf "%5s %-15s %-20s %-s\n","","",   "no value","";
-    if (defined %par && $#kwd > 0){
+    if (%par && $#kwd > 0){
 	$tmp= sprintf("%5s %-15s  %-20s %-s\n","","-" x 15 ,"-" x 20,"-" x 30);
 	$tmp.=sprintf("%5s %-15s  %-20s %-s\n","","other:","default settings: "," ");
 	$tmp2="";
@@ -89,7 +90,7 @@ foreach $arg (@ARGV){
 	   $arg=~/^(\d+)$/      )         { $red=            $1;}
     else {
 	$Lok=0; 
-	if (defined %par && $#kwd>0) { 
+	if (%par && $#kwd>0) { 
 	    foreach $kwd (@kwd){ 
 		if ($arg =~ /^$kwd=(.+)$/){$Lok=1;$par{$kwd}=$1;
 					   last;}}}
@@ -456,7 +457,7 @@ sub safWrt {
     return(0,"*** ERROR $sbrName: no acceptable output file ($fileOutLoc) defined\n") 
         if (! defined $fileOutLoc || length($fileOutLoc)<1 || $fileOutLoc !~/\w/);
     return(0,"*** ERROR $sbrName: no input given (or not input{NROWS})\n") 
-        if (! defined %tmp || ! %tmp || ! defined $tmp{"NROWS"} );
+        if (! %tmp || ! defined $tmp{"NROWS"} );
     return(0,"*** ERROR $sbrName: tmp{NROWS} < 1\n") 
         if ($tmp{"NROWS"} < 1);
     $tmp{"PER_LINE"}=50         if (! defined $tmp{"PER_LINE"});

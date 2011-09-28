@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+no warnings 'deprecated';
 #------------------------------------------------------------------------------#
 #	Copyright				        	1998	       #
 #	Burkhard Rost		rost@EMBL-Heidelberg.DE			       #

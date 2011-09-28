@@ -1,6 +1,6 @@
 SUBDIRS = lib mat
 
-dist_noinst_DATA = Build.PL $(PACKAGE).spec
+dist_noinst_DATA = Build.PL.in $(PACKAGE).spec
 dist_noinst_SCRIPTS =
 
 dist_pkgdata_SCRIPTS = blast2saf.pl blastpgp_to_saf.pl conv_hssp2saf.pl copf.pl dbSwiss hssp_filter.pl safFilterRed.pl
@@ -19,7 +19,7 @@ distclean-local:
 	rm -rf _build MYMETA.yml
 
 build-stamp: Build.PL
-	perl $(srcdir)/Build.PL installdirs=vendor && perl Build && touch build-stamp
+	perl $(srcdir)/Build.PL installdirs=vendor && perl Build manifest && perl Build && touch build-stamp
 
 install-data-local:
 	perl Build install destdir=$(DESTDIR) $(INSTALL_BASE_ARG) create_packlist=0
