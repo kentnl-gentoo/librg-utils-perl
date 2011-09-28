@@ -1,3 +1,35 @@
+librg-utils-perl (1.0.41) UNRELEASED; urgency=low
+
+  * marginally better error reporting
+  * debianization moved out of this package
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Thu, 30 Jun 2011 15:17:53 +0200
+
+librg-utils-perl (1.0.40) unstable; urgency=low
+
+  * allow digits in dbswiss table name
+  * silence warnings in non-debug mode
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Mon, 27 Jun 2011 18:12:21 +0200
+
+librg-utils-perl (1.0.39) unstable; urgency=low
+
+  * fixed blast+ parsing compatibility issue
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Mon, 27 Jun 2011 13:20:38 +0200
+
+librg-utils-perl (1.0.38) unstable; urgency=low
+
+  * now parses blast+ blastpgp output
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Wed, 22 Jun 2011 12:40:00 +0200
+
+librg-utils-perl (1.0.37) unstable; urgency=low
+
+  * Newline in left-justified string for sprintf warnings fixed
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Tue, 21 Jun 2011 20:10:34 +0200
+
 librg-utils-perl (1.0.36) unstable; urgency=low
 
   * fixed blast to saf conversion for blast 'Query: 0   ----' bug

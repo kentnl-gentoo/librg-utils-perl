@@ -14,7 +14,7 @@ use RG::Utils::Hssp_filter;
 # lkajan: trying to move away from $pack
 #$pack="hssp_filterPack";
 ($Lok,$msg)=
-    &RG::Utils::Hssp_filter::hssp_filterSbr(@ARGV);
+    &RG::Utils::Hssp_filter::hssp_filterSbr( 'dirBin=/usr/bin', 'dirHome=/usr/share/librg-utils-perl', @ARGV);
 
 die( "*** RG::Utils::Hssp_filter::hssp_filterSbr returned ERROR:\n".$msg." " ) if (! $Lok);
 

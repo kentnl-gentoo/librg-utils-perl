@@ -1,5 +1,7 @@
 #!/usr/bin/perl -w
 use Carp qw| cluck :DEFAULT |;
+use Data::Dumper qw||;
+use List::MoreUtils;
 our $debug;
 
 if ($#ARGV < 0) { print  "*** ERROR blastpgp_to_saf.pl : no arguments given\n"; print  FHERROR "*** ERROR blastpgp_to_saf.pl : no arguments given\n"; die; }
@@ -15,7 +17,6 @@ foreach $arg (@ARGV){
         elsif ($arg=~/^tile=(.*)$/)              { $alignTiling =        $1;}
         elsif ($arg=~/^debug=(.*)$/)             { $debug =              $1;}
 	else {
-	    print "*** wrong command line arg '$arg'\n";
 	    print FHERROR "*** wrong command line arg '$arg'\n";
 	    die;
 	}
@@ -38,42 +39,33 @@ else
 }
 $inicheck=0;
 if (! defined $fileInBlast)  { 
-    print "*** ERROR blastpgp_to_saf : blast input file name is not defined\n"; 
     print FHERROR "*** ERROR blastpgp_to_saf : blast input file name is not defined\n"; 
     $inicheck++;}
 else { if (! -e $fileInBlast){ 
-    print "*** ERROR blastpgp_to_saf : no input blast file $fileInBlast found\n"; 
     print FHERROR "*** ERROR blastpgp_to_saf : no input blast file $fileInBlast found\n";
     $inicheck++;} }
 
 if (! defined $fileInQuery)  { 
-    print "*** ERROR blastpgp_to_saf : query input file name is not defined\n";
     print FHERROR "*** ERROR blastpgp_to_saf : query input file name is not defined\n";
     $inicheck++;}
 else{ if(! -e $fileInQuery)  { 
-    print "*** ERROR blastpgp_to_saf : no input query file $fileInQuery found\n";
     print FHERROR "*** ERROR blastpgp_to_saf : no input query file $fileInQuery found\n";
     $inicheck++;} }
 
 if (! defined $fileOutSaf)  { 
-    print "*** ERROR blastpgp_to_saf : SAF output filename is not definded\n";
     print FHERROR "*** ERROR blastpgp_to_saf : SAF output filename is not definded\n";
     $inicheck++;}
 if (! defined $fileOutRdb)  { 
-    print "*** ERROR blastpgp_to_saf : blastRdb output filename is not definded\n";
     print FHERROR "*** ERROR blastpgp_to_saf : blastRdb output filename is not definded\n";
     $inicheck++;}
 
 if (! defined $filterThre)  { 
-    print "*** ERROR blastpgp_to_saf : filter threshold is not definded\n";
     print FHERROR "*** ERROR blastpgp_to_saf : filter threshold is not definded\n";
     $inicheck++;}
 if (! defined $maxAli)      { 
-    print "*** ERROR blastpgp_to_saf : maximum number of aligned sequences to be included in saf output file is not definded\n";
     print FHERROR "*** ERROR blastpgp_to_saf : maximum number of aligned sequences to be included in saf output file is not definded\n";
     $inicheck++;}
 if (! defined $alignTiling) { 
-    print "*** ERROR blastpgp_to_saf : tiling method of Blast alignment  is not definded\n";
     print FHERROR "*** ERROR blastpgp_to_saf : tiling method of Blast alignment  is not definded\n";
     $inicheck++;}
 
@@ -81,11 +73,10 @@ die           if ($inicheck != 0);
 
 ($Lok,$msg)=   &blastp_to_saf($fileInBlast,$fileInQuery,$fileOutSaf,$fileOutRdb,$filterThre,$maxAli,$alignTiling);
 
-if (! $Lok )    {print "*** ERROR blastpgp_to_saf.pl : $msg\n"; 
-	         print FHERROR "*** ERROR blastpgp_to_saf.pl : $msg\n"; die;}
-if ($Lok == 2 ) {print "*** WARNING blastpgp_to_saf.pl : $msg\n";
-		 print FHERROR "*** WARNING blastpgp_to_saf.pl : $msg\n"; exit;}
+if (! $Lok )    { print FHERROR "*** ERROR blastpgp_to_saf.pl : $msg\n"; die;}
+if ($Lok == 2 ) { if( $debug ){ print FHERROR "*** WARNING blastpgp_to_saf.pl : $msg\n"; } exit(0); }
 
+exit(0);
 
 
 #=============================================================================================
@@ -119,13 +110,17 @@ sub blastp_to_saf {
     }
 
                                 #------------------- finds number of iterations in blast file
+    my $blastplus_flag = 0;
+
     open($fhin,$blastfile) || return(0,"*** ERROR $sbr: failed to open blast file $blastfile\n");
     $iter=0; $nohits=0;
     while(<$fhin>){
+	# BLASTP 2.2.18 [Mar-02-2008]
+	# PSIBLAST 2.2.25+
+	if($_=~/^\w+\s+\d+\.\d+\.\d+\+/o){ $blastplus_flag = 1; }
 	if($_=~/No hits found/){$nohits=1; last;}
-	if($_=~/^Searching../){
-	    $iter++;
-	}
+	if( !$blastplus_flag && $_=~/^Searching../o ){       $iter++; }
+	if(  $blastplus_flag && $_=~/Results from round/o ){ $iter++; }
     }
     close $fhin;
 
@@ -144,9 +139,8 @@ sub blastp_to_saf {
     open($fhin,$blastfile) || return(0,"*** ERROR $sbr: failed to open blast file $blastfile\n");
     $local_counter=0;
     while(<$fhin>){
-	if($_=~/^Searching../){
-	    $local_counter++;
-	}
+	if( !$blastplus_flag && $_=~/^Searching../o ){       $local_counter++; }
+	if(  $blastplus_flag && $_=~/Results from round/o ){ $local_counter++; }
 	last if($local_counter == $iter);
     }
    
@@ -201,15 +195,24 @@ sub blastp_to_saf {
 	
 	    if( $bline )
 	    {
-	    	$bline=~s/^>//o; 
-	    	$id=$bline; $id=~s/^(\S*)\s+(.*)\s*$/$1/o;
+# lkajan: PE, SV may be on the > line when it is shorter
+# blast:
+#>sp|Q9TUI5|MT4_CANFA Metallothionein-4 OS=Canis familiaris GN=MT4
+#          PE=3 SV=1
+#          Length = 62
+# blast+:
+#> sp|Q9TUI5|MT4_CANFA Metallothionein-4 OS=Canis familiaris GN=MT4 
+#PE=3 SV=1
+#Length=62
+	    	if( not $bline=~s/^> *//o ){ confess("unrecognized line '$bline'"); }
+	    	$id=$bline; if( not $id=~s/^(\S*)\s+(.*)\s*$/$1/o ){ confess("failed to extract id from '$id'"); }
 	    	$protDspt=$2;  chomp $protDspt; 
 	    	push @alignedids, $id;
 	    }
 	    else { last; }
 	    
 	}                                                   #------------------------------------
-	if ($bline=~/^ Score/){ 
+	if ($bline=~/^ Score/o){ 
 	       $Score_count++; 
 	       for($it=0;$it<=$queryLength-1;$it++){ $block_seq[$it]="."; }
 	       undef @ali_para;
@@ -218,24 +221,30 @@ sub blastp_to_saf {
 	next                   if ( $Score_count > 1 && $tile==0 );
 #-----------------------------------------------------------------------------------------------------
 	if ( $rdb ne '0' && $rdb ne ''){
-	    if ( $bline=~ /\s+Length/){ $len2=$bline;$len2=~s/.+=\s*([0-9]+).*$/$1/;$len2=~s/\s//g;} 
+# 
+	    if ( $bline=~ /\s*Length/){ $len2=$bline;if( $len2 !~ /Length\s*=\s*([0-9]+)/o ){ confess( "unrecognized length '$len2'"); } $len2 = $1; }
+# lkajan: whitespaces vary between blast and blast+
+# Score = 84.3 bits (207),  Expect = 2e-15, Method: Compositional matrix adjust.
 	    if ( $bline=~ /Score/ ){
 		$lali=$pid=$sim=$bitScore=$expect=''; $gap=0;
 		$line=$bline;
-		chomp $line; @tmp=split(/\,/,$line);
+		chomp $line; @tmp=split(/,/o,$line);
 		push @ali_para,@tmp;
 	    }
+# 2nd: blast+
+# Identities = 57/62 (91%), Positives = 59/62 (95%)
+# Identities = 57/62 (91%), Positives = 59/62 (95%), Gaps = 0/62 (0%)
 	    if ( $bline=~ /Identities/){
 		$line=$bline; chomp $line;
-		@tmp=split(/\,/,$line); push @ali_para,@tmp;
+		@tmp=split(/,/o,$line); push @ali_para,@tmp;
 		foreach $param (@ali_para){
 		    $param=~s/\s+//g;
-		    if ($param=~/Score/){ $bitScore=$param; $bitScore=~s/^.+=(.+)bits.*$/$1/;}
+		    if ($param=~/Score/){ $bitScore=$param; if( not $bitScore=~s/^.+=(.+)bits.*$/$1/o ){ confess($bitScore); } }
 		    elsif ($param=~/Expect/){@temp=split(/=/,$param); $expect=$temp[1];}
-		    elsif ($param=~/Identities/){$lali=$param; $lali=~s/.+\/([0-9]+)\(([0-9]+)%\).*$/$1/;
+		    elsif ($param=~/Identities/){$lali=$param; if( not $lali=~s/.+\/([0-9]+)\(([0-9]+)%\).*$/$1/o ){ confess( $lali ); }
 						 $pid=$2;}
-		    elsif ($param=~/Positives/){$sim=$param; $sim=~s/^.+\(([0-9]+)%\).*$/$1/;}
-		    elsif ($param=~/Gaps/){$gap=$param; $gap=~s/^.+=([0-9]+)\/.*$/$1/;}
+		    elsif ($param=~/Positives/){$sim=$param; if( not $sim=~s/^.+\(([0-9]+)%\).*$/$1/o ){ confess( $sim ); }}
+		    elsif ($param=~/Gaps/){$gap=$param; if( not $gap=~s/^.+=([0-9]+)\/.*$/$1/o ){ confess($gap); }}
 		}
 		$lali=$lali-$gap;
 		$qLength=$queryLength;
@@ -253,17 +262,27 @@ sub blastp_to_saf {
 	# Sbjct: 67                                                               67
 	# Query: 1713 HVETRWHCTVCEDYDLCINCYNTKSHAHKMVKWGLGLDDEGSSQGEPQSKSPQESRRVSI 1772
 	# Query: 1890 PGTPTQQPSTPQT 1902
-	if($bline=~/^Query:/){ @tmp=split(/\s+/o,$bline); undef @aligned; undef @inserted_query;
+	# blast
+	#Query: 1  MDPRECVCMSGGICMCGDNCKCTTCNCKTCRKSCCPCCPPGCAKCARGCICKGGSDKCSC 60
+	#          MDP EC CMSGGIC+CGDNCKCTTCNCKTCRKSCCPCCPPGCAKCA+GCICKGGSDKCSC
+	#Sbjct: 1  MDPGECTCMSGGICICGDNCKCTTCNCKTCRKSCCPCCPPGCAKCAQGCICKGGSDKCSC 60
+	# blast+
+	#Query  1   MDPRECVCMSGGICMCGDNCKCTTCNCKTCRKSCCPCCPPGCAKCARGCICKGGSDKCSC  60
+	#           MDP EC CMSGGIC+CGDNCKCTTCNCKTCRKSCCPCCPPGCAKCA+GCICKGGSDKCSC
+	#Sbjct  1   MDPGECTCMSGGICICGDNCKCTTCNCKTCRKSCCPCCPPGCAKCAQGCICKGGSDKCSC  60
+
+	# lkajan: do not confuse with 'Query=  MT4_HUMAN' - this may appear in blast+ after each round header
+	if($bline=~/^Query:?\s+\d+/o){ @tmp=split(/\s+/o,$bline); undef @aligned; undef @inserted_query;
 			   $beg=$tmp[1]-1; if( $beg == -1 ) { $end = -1; } else { $end=$tmp[3]-1; }
 			   if (! defined $endings{$Score_count}[0] || $endings{$Score_count}[0] < 0 ){ $endings{$Score_count}[0]=$beg;}
 			   $endings{$Score_count}[1]=$end;
 			   if( defined($tmp[2]) ){ @inserted_query=split(//o,$tmp[2]); }
 		      }
-	if($bline=~/^Sbjct:/){
-	    @tmp=split(/\s+/,$bline); 
-	    @aligned=split(//,$tmp[2]);
+	if($bline=~/^Sbjct/o){
+	    @tmp=split(/\s+/o,$bline); 
+	    @aligned=split(//o,$tmp[2]);
 						     #getting rid of insertions at query sequence
-	    print " *** ERROR sbr: blastp_to_saf in lenghts for $id\n"  if ($#inserted_query != $#aligned);
+	    cluck( " *** ERROR sbr: blastp_to_saf in lenghts for $id" )  if ($#inserted_query != $#aligned);
 	    $local_counter=0;
 	    undef @tmp_seq;
 	    for($it=0;$it <= $#inserted_query; $it++){
@@ -282,6 +301,8 @@ sub blastp_to_saf {
     }
     close $fhin;
 
+    @alignedids = sort{ $a cmp $b }@alignedids;
+
 				                      #getting rid of repeats in the list    
     undef @namesSort;
     push @namesSort, $queryName;
@@ -298,14 +319,11 @@ sub blastp_to_saf {
 #	if($rflag == 0){push @namesSort, $it;}
 #    }
 
-    foreach $it (@alignedids){                      
-	$indicator=0;
-	foreach $es (@namesSort){
-	    if ( $it eq $es ){ $indicator++; last;}
-	}
-	if ($indicator < 1){ push @namesSort, $it; }
-    } 
-    @alignedNames=@namesSort[1 .. $#namesSort];
+    push @namesSort, @alignedids;
+    @namesSort = List::MoreUtils::uniq( @namesSort );
+    @alignedNames = splice( @namesSort, 1 );
+
+    if( $debug ){ warn( Data::Dumper::Dumper( \@alignedNames ) ); }
                                                        #-------------------------------------
  
                                                        #--filtering alignment
@@ -425,7 +443,7 @@ sub print_saf_file{
     $pages=int $queryLength/50;
     if ($queryLength%50 != 0){$pages++;}
 
-    open($fhout,">$fileout") || return(0,"*** ERROR $sbr: failed to open fileout=$fileout for writing");
+    open($fhout,">", $fileout ) || return(0,"*** ERROR $sbr: failed to open fileout=$fileout for writing");
     print $fhout "# SAF (Simple Alignment Format)\n";
     print $fhout "#\n";
     $nameField=0;

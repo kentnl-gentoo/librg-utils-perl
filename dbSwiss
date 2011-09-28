@@ -32,7 +32,7 @@ our $quiet = $opt->{quiet};
 
 if( $opt->{man} ){ pod2usage(-verbose => 2); }
 
-if( $opt->{table} =~ /[^a-z_]/io ){ confess("invalid table name '$opt->{table}'"); }
+if( $opt->{table} =~ /[^a-z0-9_]/io ){ confess("invalid table name '$opt->{table}'"); }
 
 # lkajan: the below would be nice but perhaps because of the ACLs I get "Error in tempdir() using /mnt/project/rost_db/src/XXXXXXXXXX: Parent directory (/mnt/project/rost_db/src) is not writable" when it is in fact writable
 #my $workdir = $opt->{workdir} || File::Temp::tempdir( DIR => $opt->{datadir}, CLEANUP => !$dbg );

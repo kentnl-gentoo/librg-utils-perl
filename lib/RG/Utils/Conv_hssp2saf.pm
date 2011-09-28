@@ -98,20 +98,20 @@ sub conv_hssp2saf {
 
 
 
-    @ARGV=@_;			# pass from calling
+    @PARAMS=@_;			# pass from calling
 
     $par{packName} = __FILE__;
 
 				# ------------------------------
-    foreach $arg(@ARGV){	# highest priority arguments
+    foreach $arg(@PARAMS){	# highest priority arguments
 	next if ($arg !~/=/);
 	if ($arg=~/^packName=(.*)/) { $par{"packName"}=$1; 
-				      shift @ARGV if ($ARGV[1] eq $arg); }  }
+				      shift @PARAMS if ($PARAMS[1] eq $arg); }  }
 				# ------------------------------
     &convHssp2saf("ini");	# sets %par
 
 				# ------------------------------
-    if ($#ARGV<1){		# help
+    if ($#PARAMS<1){		# help
 	print  "goal:\t $scrGoal\n";
 	print  "use: \t '$scrName list.hssp (or *.hssp)'\n";
 	print  "opt: \t \n";
@@ -134,7 +134,7 @@ sub conv_hssp2saf {
 	exit;}
 
     ($Lok,$msg)=
-	&convHssp2saf(@ARGV);
+	&convHssp2saf(@PARAMS);
 
     print "*** $scrName: final msg=\n".$msg."\n" if (! $Lok);
 

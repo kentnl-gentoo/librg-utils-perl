@@ -250,19 +250,10 @@ See module source for description.
 
 =back
 
-=head1 ENVIRONMENT
-
-=over
-
-=item RG_UTILS_ROOT
-
-Overrides default of '__PREFIX__/usr/share/librg-utils-perl/'.
-
-=back
-
 =head1 AUTHOR
 
-B. Rost
+B. Rost <rost@rostlab.org>
+L. Kajan <lkajan@rostlab.org>
 
 =head1 SEE ALSO
 
@@ -335,7 +326,7 @@ sub copf {
 #-------------------------------------------------------------------------------
     $[ =1 ;			# sets array count to start at 1, not at 0
 
-    @ARGV=@_;			# pass from calling
+    @PARAMS=@_;			# pass from calling
 
     ($Lok,$msg)=  &ini();	# initialise variables
     if (! $Lok){ Carp::confess("--> ERROR during initialising $scrName \nmsg=$msg"); }
@@ -531,17 +522,15 @@ sub ini {
     $sbrName="$scrName".":ini";
 
 
-    $par{"dirHome"} = $ENV{RG_UTILS_ROOT} || "__PREFIX__/usr/share/librg-utils-perl/"; 
-
 				# ------------------------------
-    foreach $arg(@ARGV){	# highest priority arguments
+    foreach $arg(@PARAMS){	# highest priority arguments
 	next if ($arg !~/=/);
 	if    ($arg=~/dirLib=(.*)$/)   { $dir=            $1;}
 	elsif ($arg=~/dirHome=(.*)$/i) { $par{"dirHome"}= $1;}
 	elsif ($arg=~/ARCH=(.*)$/)     { $ARCH=           $1;}
 	elsif ($arg=~/PWD=(.*)$/)      { $PWD=            $1;}
 	elsif ($arg=~/^packName=(.*)/) { $par{"packName"}=$1; 
-					 shift @ARGV if ($ARGV[1] eq $arg); }  }
+					 shift @PARAMS if ($PARAMS[1] eq $arg); }  }
 
 
 				# ******************************
@@ -549,9 +538,7 @@ sub ini {
     return(&errSbrMsg("after $0:",
 		      "missing dirHome, please add the command line option:\n".
 		      "dirHome=THE_PATH_WHERE_THIS_SCRIPT_SITS",$SBR))
-	if (! defined $par{"dirHome"} ||
-	    ! $par{"dirHome"}         ||
-	    (length($par{"dirHome"})<1));
+	if( !$par{dirHome} || !-e $par{dirHome} );
 
 				# ------------------------------
 				# get architecture $ARCH=
@@ -629,11 +616,11 @@ sub ini {
                 if (! defined $1 || ! -e $1);
 	    next if (length($1)<2 || ! -e $1);
             push(@fileIn,$1);push(@chainIn,$2);}
-        elsif ($arg eq $ARGV[2]){ # to enable calling by 'copf 1ppt.hssp 1ppt.daf'
+        elsif ($arg eq $PARAMS[2]){ # to enable calling by 'copf 1ppt.hssp 1ppt.daf'
 	    next;}
         elsif ($arg=~/^expand$/i)                {$par{"doExpand"}=        1;}
 	else  {
-	    return(0,"*** ERROR $sbrName: kwd '$arg' not understood\n");}}
+	    return(0,"*** ERROR $sbrName: '$arg' file does not exist or kwd not understood\n");}}
 
 				# ------------------------------
 				# replace binary
@@ -759,7 +746,7 @@ sub ini {
                                 # determine output format
                                 # (1) not provided, but 2nd arg = file.WANTED_CONVERSION
     if (! defined $par{"formatOut"} || length($par{"formatOut"})<2 || $par{"formatOut"} eq "unk"){
-        $fileOut=$ARGV[2];
+        $fileOut=$PARAMS[2];
         $par{"formatOut"}=$fileOut; $par{"formatOut"}=~s/^.*\.([^\.]+)$/$1/;
         $par{"formatOut"}=~tr/[A-Z]/[a-z]/;}
                                 # ------------------------------
@@ -912,7 +899,7 @@ sub iniDef {
 	$par{"dirSrcMat"}=      "$par{dirHome}/mat/";   # general material
 	#$par{"dirPerl"}=        "$par{dirHome}embl/scr/";   # perl libraries # lkajan: deprecated
 	#$par{"dirPerlScr"}=     "$par{dirHome}embl/scr/";   # perl scripts needed # lkajan: wrong
-	$par{"dirBin"}=         "__PREFIX__/usr/bin/";   # FORTRAN binaries of programs needed
+	$par{"dirBin"}=         "/usr/bin/";   # FORTRAN binaries of programs needed
 #    }
 
     $par{"dirPerlPack"}=        $par{"dirPerlScr"}."pack/";  # perl scripts needed
@@ -1409,7 +1396,7 @@ sub brIniErr {
     $[ =1 ;
 #-------------------------------------------------------------------------------
 #   brIniErr                    error check for initial parameters
-#       in GLOBAL:              $par{},@ARGV
+#       in GLOBAL:              $par{},@PARAMS
 #       in:                     $exceptions = 'kwd1,kwd2'
 #                                  key words not to check for file existence
 #       out:                    ($Lok,$msg)
@@ -1449,14 +1436,14 @@ sub brIniGetArg {
     $[ =1 ;
 #-------------------------------------------------------------------------------
 #   brIniGetArg                 standard reading of command line arguments
-#       in GLOBAL:              @ARGV,$defaults{},$par{}
+#       in GLOBAL:              @PARAMS,$defaults{},$par{}
 #       out GLOBAL:             $par{},@fileIn
 #       out:                    @arg_not_understood (i.e. returns 0 if everything ok!)
 #-------------------------------------------------------------------------------
     $sbrName="lib-br:"."brIniGetArg";
     $#argUnk=0;                 # ------------------------------
 				# (1) get input directory
-    foreach $arg (@ARGV){	# search in command line
+    foreach $arg (@PARAMS){	# search in command line
 	if ($arg=~/^dirIn=(.+)$/){$par{"dirIn"}=$1;
 				  last;}}
 				# search in defaults
@@ -1478,7 +1465,7 @@ sub brIniGetArg {
     $Lverb3=0 if (! defined $Lverb3);
     $Lverb2=0 if (! defined $Lverb2);
     $#fileIn=0;                 # ------------------------------
-    foreach $arg (@ARGV){	# (2) key word driven input
+    foreach $arg (@PARAMS){	# (2) key word driven input
 	if    ($arg=~/^verb\w*3=(\d)/)           {$par{"verb3"}=$Lverb3=$1;}
 	elsif ($arg=~/^verb\w*3/)                {$par{"verb3"}=$Lverb3=1;}
 	elsif ($arg=~/^verb\w*2=(\d)/)           {$par{"verb2"}=$Lverb2=$1;}
@@ -1532,7 +1519,7 @@ sub brIniHelp {
 #                                   syntax: print flat lines (or '--- $line'), separate by '\n'
 #                               $tmp{scrHelpHints}= hints (tab separated)
 #                               $tmp{scrHelpProblems}= known problems (tab separated)
-#       in GLOBULAR:            @ARGV
+#       in GLOBULAR:            @PARAMS
 #                               $par{fileHelpOpt}
 #                               $par{fileHelpMan}
 #                               $par{fileHelpHints}
@@ -1622,8 +1609,8 @@ sub brIniHelp {
 	if ($#kwdLoc>1){
 	    foreach $kwd (@kwdLoc){
 		$tmp=" "; $tmp=$tmp{$kwd} if (defined $tmp{$kwd});
-		$tmp=~s/\n$//;
-		$tmpWrt=sprintf ("---   %-15s %-s\n",$kwd,$tmp); 
+		$tmp=~s/\n$//o;
+		$tmpWrt=sprintf ("---   %-15s %s\n",$kwd,$tmp);
 		push(@scrSpecialLoc,$tmpWrt); } }}
 				# ------------------------------
 				# general:
@@ -1637,7 +1624,7 @@ sub brIniHelp {
 	
 				# ------------------------------
 				# no input
-    if ($#ARGV < 1) {		# ------------------------------
+    if ($#PARAMS < 1) {		# ------------------------------
 	print $fstLineLoc;
 	print join("\n",@scrTask,"\n");
 	print @scrHelpTxtLoc;
@@ -1646,7 +1633,7 @@ sub brIniHelp {
 				# ------------------------------
 				# help request
 				# ------------------------------
-    elsif ($#ARGV < 2 && $ARGV[1] =~ /^(help|man|-m|-h)$/){
+    elsif ($#PARAMS < 2 && $PARAMS[1] =~ /^(help|man|-m|-h)$/){
 	print $fstLineLoc;
 	print join("\n",@scrTask,"\n");
 	print @scrHelpTxtLoc;
@@ -1679,7 +1666,7 @@ sub brIniHelp {
 				# ------------------------------
 				# wants manual
 				# ------------------------------
-    elsif ($#ARGV<2  && $ARGV[1] eq "manual"){
+    elsif ($#PARAMS<2  && $PARAMS[1] eq "manual"){
 	print $fstLineLoc;
 	if (defined $par{"fileHelpMan"} &&  -e $par{"fileHelpMan"}){
 	    open("FHIN",$par{"fileHelpOpt"}) || 
@@ -1692,7 +1679,7 @@ sub brIniHelp {
 				# ------------------------------
 				# wants hints
 				# ------------------------------
-    elsif ($#ARGV==1  && $ARGV[1] eq "hints"){
+    elsif ($#PARAMS==1  && $PARAMS[1] eq "hints"){
 	print $fstLineLoc;
 	print "--- Hints for users:\n";$ct=0;
 	if (defined $par{"fileHelpHints"} && -e $par{"fileHelpHints"}){
@@ -1710,7 +1697,7 @@ sub brIniHelp {
 				# ------------------------------
 				# wants problems
 				# ------------------------------
-    elsif ($#ARGV<2  && $ARGV[1] eq "problems"){
+    elsif ($#PARAMS<2  && $PARAMS[1] eq "problems"){
 	print $fstLineLoc;
 	print "--- Known problems with script:\n";$ct=0;
 	if (defined $par{"fileHelpProblems"} && -e $par{"fileHelpProblems"}){
@@ -1728,7 +1715,7 @@ sub brIniHelp {
 				# ------------------------------
 				# wants default settings
 				# ------------------------------
-    elsif ($#ARGV<2 && $ARGV[1] eq "def"){
+    elsif ($#PARAMS<2 && $PARAMS[1] eq "def"){
 	print $fstLineLoc;
         if (defined %par){
             @kwdLoc=sort keys (%par);
@@ -1750,11 +1737,11 @@ sub brIniHelp {
 				# ------------------------------
 				# help for particular keyword
 				# ------------------------------
-    elsif ($#ARGV>=2 && $ARGV[1] eq "help" ||
-	   $#ARGV==1 && $ARGV[1] eq "special"){
+    elsif ($#PARAMS>=2 && $PARAMS[1] eq "help" ||
+	   $#PARAMS==1 && $PARAMS[1] eq "special"){
 	print $fstLineLoc;
-	$kwdHelp=$ARGV[2]         if ($#ARGV > 1); 
-	$kwdHelp=$ARGV[1]         if ($#ARGV== 1); 
+	$kwdHelp=$PARAMS[2]         if ($#PARAMS > 1); 
+	$kwdHelp=$PARAMS[1]         if ($#PARAMS== 1); 
 	$tmp="help $kwdHelp";	# special?
 	$tmp=~tr/[A-Z]/[a-z]/;	# make special keywords case independent 
         $tmp2=$tmp;$tmp2=~s/help //;
@@ -1850,8 +1837,8 @@ sub brIniHelp {
 				# ------------------------------
 				# wants settings for keyword
 				# ------------------------------
-    elsif ($#ARGV>=2  && $ARGV[1] eq "def"){
-	$kwdHelp=$ARGV[2];
+    elsif ($#PARAMS>=2  && $PARAMS[1] eq "def"){
+	$kwdHelp=$PARAMS[2];
 	print "-" x 80, "\n"; print "--- Perl script $scrName.pl (",$tmp{"sourceFile"},")\n"; 
         if (defined %par){
             @kwdLoc=sort keys (%par);
@@ -1909,7 +1896,7 @@ sub brIniHelpLoop {
 	    printf "%-s %-15s %-s\n",$promptLoc,"ABBREVIATIONS", "h=help, d=def (e.g. 'h kwd')";
 	    printf "%-s %-15s %-s\n",$promptLoc,"ENOUGH ?",      "[quit|q|e|exit] to end";
 
-	    $def="$ARGV[1]"     if (defined $def);   # take previous
+	    $def="$PARAMS[1]"     if (defined $def);   # take previous
 		
 	    $ansr=
 		&get_in_keyboard("type",$def,$promptLoc);
@@ -1919,19 +1906,19 @@ sub brIniHelpLoop {
 	    if ($ansr=~/^[q|quit|e|exit]$/) { 
 		$Lquit=1; 
 		last; }
-				# redefine @ARGV
-	    @ARGV=split(/\s+/,$ansr);
-	    $ARGV[1]="help"     if ($ARGV[1] eq "h" || $ARGV[1] eq "H");
-	    $ARGV[1]="def"      if ($ARGV[1] eq "d" || $ARGV[1] eq "D");
+				# redefine @PARAMS
+	    @PARAMS=split(/\s+/,$ansr);
+	    $PARAMS[1]="help"     if ($PARAMS[1] eq "h" || $PARAMS[1] eq "H");
+	    $PARAMS[1]="def"      if ($PARAMS[1] eq "d" || $PARAMS[1] eq "D");
 
 	    ++$ct;
 				# add keyword help
-	    if ($ct > 1 && $#ARGV < 2) {
-		$ARGV[2]=$ARGV[1];
-		$ARGV[1]="help";}
+	    if ($ct > 1 && $#PARAMS < 2) {
+		$PARAMS[2]=$PARAMS[1];
+		$PARAMS[1]="help";}
 
 	    $txt1="start again with(";
-	    $txt2=join(' ',@ARGV);
+	    $txt2=join(' ',@PARAMS);
 	    $lenfin=80 - 6 - (length($txt1) + length($txt2));
 	    print "--- ","-" x length($txt1),"#" x length($txt2),"--", "-" x $lenfin,"\n";
 	    print "--- ",$txt1,$txt2,")\n";
@@ -1995,7 +1982,7 @@ sub brIniRdDef {
     $[ =1 ;
 #-------------------------------------------------------------------------------
 #   brIniRdDef                  reads defaults for initialsing parameters
-#       in GLOBAL:              $par{},@ARGV
+#       in GLOBAL:              $par{},@PARAMS
 #       out GLOBAL:             $par{} (i.e. changes settings automatically)
 #       in:                     file_default
 #       out:                    ($Lok,$msg,%defaults) with:
