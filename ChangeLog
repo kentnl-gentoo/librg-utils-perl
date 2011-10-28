@@ -1,4 +1,11 @@
-librg-utils-perl (1.0.42) UNRELEASED; urgency=low
+librg-utils-perl (1.0.43) unstable; urgency=low
+
+  * librg-utils-perl.spec.in added
+  * fixed warnings caused by buggy blast output
+
+ -- Laszlo Kajan <lkajan@rostlab.org>  Fri, 28 Oct 2011 22:10:33 +0200
+
+librg-utils-perl (1.0.42) unstable; urgency=low
 
   * deprecated defined %hash are rewritten
   * deprecated $[ are silenced with no warnings 'deprecated';

@@ -37,8 +37,9 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(dist_noinst_DATA) \
 	$(dist_noinst_SCRIPTS) $(dist_pkgdata_SCRIPTS) \
 	$(srcdir)/Build.PL.in $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(top_srcdir)/configure AUTHORS COPYING \
-	ChangeLog INSTALL NEWS install-sh missing
+	$(srcdir)/Makefile.in $(srcdir)/librg-utils-perl.spec.in \
+	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
+	install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -46,7 +47,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = Build.PL
+CONFIG_CLEAN_FILES = Build.PL librg-utils-perl.spec
 CONFIG_CLEAN_VPATH_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -204,7 +205,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = lib mat
-dist_noinst_DATA = Build.PL.in $(PACKAGE).spec
+dist_noinst_DATA = Build.PL.in $(PACKAGE).spec.in
 dist_noinst_SCRIPTS = 
 dist_pkgdata_SCRIPTS = blast2saf.pl blastpgp_to_saf.pl conv_hssp2saf.pl copf.pl dbSwiss hssp_filter.pl safFilterRed.pl
 man_MANS = dbSwiss.1
@@ -248,6 +249,8 @@ $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
 Build.PL: $(top_builddir)/config.status $(srcdir)/Build.PL.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+librg-utils-perl.spec: $(top_builddir)/config.status $(srcdir)/librg-utils-perl.spec.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-dist_pkgdataSCRIPTS: $(dist_pkgdata_SCRIPTS)
 	@$(NORMAL_INSTALL)
@@ -820,10 +823,10 @@ clean-local:
 	if [ -e Build ]; then perl Build clean && rm -f Build build-stamp; fi
 
 distclean-local:
-	rm -rf _build MYMETA.yml
+	rm -rf _build MYMETA.yml MANIFEST MANIFEST.SKIP.bak MANIFEST.SKIP
 
 build-stamp: Build.PL
-	perl $(srcdir)/Build.PL installdirs=vendor && perl Build manifest && perl Build && touch build-stamp
+	perl Build.PL installdirs=vendor && perl Build manifest && perl Build && touch build-stamp
 
 install-data-local:
 	perl Build install destdir=$(DESTDIR) $(INSTALL_BASE_ARG) create_packlist=0

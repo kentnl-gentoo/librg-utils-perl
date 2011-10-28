@@ -1,6 +1,6 @@
 Summary: a set of wrappers and conversion utilities for bioinformatics databases
 Name: librg-utils-perl
-Version: 1.0.41
+Version: @VERSION@
 Release: 1
 License: GPL
 Group: Applications/Science
@@ -44,6 +44,8 @@ rm -rf $RPM_BUILD_ROOT
 %{perl_vendorlib}/RG/Utils/*
 
 %changelog
+* Fri Oct 28 2011 Laszlo Kajan <lkajan@rostlab.org> - 1.0.42-1
+- new upstream
 * Mon Jun 27 2011 Laszlo Kajan <lkajan@rostlab.org> - 1.0.41-1
 - new upstream
 * Mon Jun 27 2011 Laszlo Kajan <lkajan@rostlab.org> - 1.0.39-1
