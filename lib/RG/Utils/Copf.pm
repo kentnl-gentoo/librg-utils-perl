@@ -2112,7 +2112,7 @@ sub brIniSet {
 	    $par{$kwd}=$par{"dirOut"}.$par{$kwd} if (-d $par{"dirOut"});}}
 				# ------------------------------
 				# push array of output files
-    $#fileOut=0 if (! defined @fileOut);
+    $#fileOut=0 if (!@fileOut);
     foreach $kwd (@kwdFileOut){
 	push(@fileOut,$par{$kwd});}
 				# ------------------------------
@@ -2240,7 +2240,7 @@ sub brIniWrt {
 	    printf $fhTraceLocSbr "--- %-20s '%-s'\n",$kwd,$par{$kwd};}}
 				# ------------------------------
 				# input files
-    if    (defined @fileIn && $#fileIn>1){
+    if    (@fileIn && $#fileIn>1){
 				# get dirs
 	$#tmpdir=0; undef %tmpdir;
 	foreach $file (@fileIn){
@@ -2262,10 +2262,10 @@ sub brIniWrt {
 		$tmp=$fileIn[$it2]; $tmp=~s/^.*\///g;
 		printf $fhTraceLocSbr "%-18s ",$tmp;++$it2;}
 	    print $fhTraceLocSbr "\n";}}
-    elsif ((defined @fileIn && $#fileIn==1) || (defined $fileIn && -e $fileIn)){
+    elsif ((@fileIn && $#fileIn==1) || (defined $fileIn && -e $fileIn)){
 	$tmp=0;
 	$tmp=$fileIn    if (defined $fileIn && $fileIn);
-	$tmp=$fileIn[1] if (! $tmp && defined @fileIn && $#fileIn==1);
+	$tmp=$fileIn[1] if (! $tmp && @fileIn && $#fileIn==1);
 	print  $fhTraceLocSbr "--- \n";
 	printf $fhTraceLocSbr "--- %-20s '%-s'\n","Input file:",$tmp;}
     print  $fhTraceLocSbr "--- \n";
@@ -4737,7 +4737,7 @@ sub getSysARCH {
 				# ------------------------------
 				# (1) find in arguments passed
 				# ------------------------------
-#    if (defined @argLoc && $#argLoc > 0) {
+#    if (@argLoc && $#argLoc > 0) {
 #	foreach $arg (@argLoc) {
 #	    if ($arg=~/^ARCH=(\S+)/i) {
 #		$archFound=$1;
@@ -5022,7 +5022,7 @@ sub hsspRdAli {
 				#                  of all numbers wanted (i.e. = $want[M])
     undef @ptr_numFin2numWant;	# $ptr[M]=   N   : see previous, the other way around!
 
-    $#want=0                    if (! defined @want);
+    $#want=0                    if (!@want);
     $LreadAll=0; 
 				# ------------------------------
 				# digest input
@@ -5075,7 +5075,7 @@ sub hsspRdAli {
 				# sort the array
     @wantNum= sort bynumber (@wantNum);
 				# too many wanted
-    if (defined @wantNum && ($wantNum[$#wantNum] > $locNum[$#locNum])){
+    if (@wantNum && ($wantNum[$#wantNum] > $locNum[$#locNum])){
 	$#tmp=0; 
 	foreach $want (@wantNum){
 	    if ($want <= $locNum[$#locNum]){

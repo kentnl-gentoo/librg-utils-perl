@@ -604,7 +604,7 @@ sub hsspRdAli {
 				#                  of all numbers wanted (i.e. = $want[M])
     undef @ptr_numFin2numWant;	# $ptr[M]=   N   : see previous, the other way around!
 
-    $#want=0                    if (! defined @want);
+    $#want=0                    if (!@want);
     $LreadAll=0; 
 				# ------------------------------
 				# digest input
@@ -657,7 +657,7 @@ sub hsspRdAli {
 				# sort the array
     @wantNum= sort bynumber (@wantNum);
 				# too many wanted
-    if (defined @wantNum && ($wantNum[$#wantNum] > $locNum[$#locNum])){
+    if (@wantNum && ($wantNum[$#wantNum] > $locNum[$#locNum])){
 	$#tmp=0; 
 	foreach $want (@wantNum){
 	    if ($want <= $locNum[$#locNum]){
